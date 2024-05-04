@@ -53,7 +53,7 @@ function initialize_variables()
     global_moveSpeedMax = 8 --Multiply obj moveSpeed by this number
     global_dampen = .02 --Multiply anything related to movement to convert my working numbers into numbers appropriate for pixels
     global_tick = 0
-        tileSize = 8
+    tileSize = 8
     originOffset = 16
 
 global_framesPerSprite = 5
