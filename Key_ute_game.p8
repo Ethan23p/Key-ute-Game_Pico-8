@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
--- Flirt game 
+-- Key-ute Game
 -- idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
 -- for Cassie ♥
 
