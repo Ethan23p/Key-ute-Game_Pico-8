@@ -323,6 +323,8 @@ function update_gameplay()
     --Iterate global tick
     tick_update()
 
+
+
     --Validate player
     if not char_player then
         troubleshooting("noChar", "Um, you lost your character! \n")

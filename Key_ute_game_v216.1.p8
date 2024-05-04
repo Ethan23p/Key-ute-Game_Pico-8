@@ -1,5 +1,5 @@
 pico-8 cartridge // http://www.pico-8.com
-version 41
+version 42
 __lua__
 -- Flirt game 
 -- idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
@@ -25,7 +25,7 @@ function initialize_variables()
     char_player =
     {
         coords = {x = 16, y = 16},
-        facingRight = true,
+        direction = "➡️", --For reference: ⬅️➡️⬆️⬇️
         moveSpeed = 16, --base moveSpeed, everything else will be based on this
         vel = {x = 0, y = 0},
         intended = {x = 16, y = 16},
@@ -53,16 +53,17 @@ function initialize_variables()
     global_moveSpeedMax = 8 --Multiply obj moveSpeed by this number
     global_dampen = .02 --Multiply anything related to movement to convert my working numbers into numbers appropriate for pixels
     global_tick = 0
-    global_framesPerSprite = 5
     tileSize = 8
     originOffset = 16
 
+global_framesPerSprite = 5
     spriteFlag_solid = 0
     spriteFlag_loseCondition = 2 --Prob unused, might remove
+hoverCycle = {range = 3}
+
     range_hazard = (8 + char_player.width/2) --in pixels
     range_key = (8 + char_player.width/2)
 
-    sprite_keyCycle = {0, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, -1, 0, 0, -1, 0, 0, -1}
     sprite_hazardCycle = 
     {
         66, 64, 64, 64, 64, 64, 64, 64,--Rest state 1, settles for 1 frame then rests
@@ -116,6 +117,9 @@ function init_gameplay()
     --Clear table toAnimate
     table_toAnimate = {}
 
+    --Clear temporary tape
+    tempTape.clear(char_player)
+
     --Reset key progress
     char_player.hasKey = false
 
@@ -130,7 +134,7 @@ function init_gameplay()
         {
             current = 25,
             size = 1,
-            hoverCycle = sprite_keyCycle,
+            hoverCycle = hoverCycle,
         }
     }
     add(table_toAnimate, key_current)
@@ -280,10 +284,8 @@ function query_doesCollide_range(obj_coords, point_coords, range)
     local euclideanDistance = sqrt(differenceInX^2 + differenceInY^2)
 
     if euclideanDistance < range then
-        troubleshooting("range", "hit! \n")
         return true
     else
-        troubleshooting("range", "miss! \n")
         return false
     end
 end
@@ -299,6 +301,14 @@ function query_doesCollide_zone(obj, zone)
     and (zone.corner_1.y < y) 
     and (y < zone.corner_2.y) 
     then
+        return true
+    else
+        return false
+    end
+end
+
+function query_isFacingLeft(obj)
+    if obj.direction == "⬅️" then 
         return true
     else
         return false
@@ -321,14 +331,15 @@ function update_gameplay()
     end
 
     --Early in frame, move player
-    --then record TODO
+    --then record
     move_player(char_player)
+    tempTape.write(char_player, char_player.coords.x)
 
     --If player is in success zone, 
     --advance level TODO
-    if query_doesCollide_zone(char_player, zone_success) then
+    if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
 
-        advance_level(level_current)
+        advance_level()
 
     end
 
@@ -397,6 +408,14 @@ function move_player(player)
         player.intended.y = player.coords.y + (impose_global_dampen(player.vel.y))
     end
     
+    --Compare player's intended x to their current x, if negative they are facing left, else right
+    --For reference: ⬅️➡️⬆️⬇️
+    if (player.intended.x - player.coords.x) < 0 then
+        player.direction = "⬅️"
+    else
+        player.direction = "➡️"
+    end
+
     --Simply set player coords to the intended coords
     player.coords.x = player.intended.x
     player.coords.y = player.intended.y
@@ -413,39 +432,34 @@ function tick_update()
 
 end
 
-levelTimer = {} --Initialize level timer
---Function intentially uses reference of current level's timer
---Level timer ticks down and provides framework for the timer visual.
---TODO Need to implement a timer visual
-function levelTimer.update()
+function advance_level()
 
-    local timer = level_current.levelTimer
-
-    if not timer.current then
-        timer.current = timer.max
+    local seqOrder_next = level_current.seqOrder + 1
+    local function query_isNextLevel(level)
+        if level.seqOrder == seqOrder_next then
+            level_current = level
+        end
     end
 
-    timer.current -= 1
-    if timer.current < 0 then
-        die()
+    if seqOrder_next > #levels then
+        troubleshooting("weiner", "You r the weiner!")
+    else
+        foreach(levels, query_isNextLevel())
     end
 
-end
+    tape.record(char_player)
 
-function advance_level(level) --TODO:this
-
-    foo = "barry"
+    die()
 
 end
 
 function die()
 
-    troubleshooting("die", "Now you've done it")
     init_gameplay()
 
 end
 
---Checks if an objects bounds touch a map tile with a given sprite flag
+--Checks if an object's bounds touch a map tile with a given sprite flag
 --limited to only "is solid?" but I could modify
 function query_canMove(x, y, obj_width, obj_height)
 
@@ -501,26 +515,36 @@ function query_flagType(coords_input, flagType)
     return false
 end
 
-tempTape = {}
+--For the recording of the player's movements I'm analogizing it to VHS/film tape
+tempTape = {} --Initialize tempTape
 
+--Clear tempTape simply; I just want to be explicit for clarity
 function tempTape.clear(obj)
 
     tempTape[obj] = {}
 
 end
 
-function tempTape.write(obj, coords, direction, level)
+--Add a single entry to tempTape
+function tempTape.write(obj)
 
-    add(tempTape[obj], {coords.x, coords.y, direction, level})
+    add(tempTape[obj], {obj.coords.x, obj.coords.y, obj.direction, level_current})
 
 end
 
-tape = {}
+tape = {} --initialize tape
 
+--Once the tempTape is finalized, record it to the final tape
 function tape.record(obj)
 
-    for index, entry in ipairs(tempTape[obj]) do
+    --Validate tempTape
+    if not tempTape[obj] then
+        troubleshooting("recordNil", "No tempTape to record")
+    end
 
+    --Final tape is a continuously constructed table
+    --When tempTape is finalized, append each entry in tempTape to finalTape
+    for index, entry in ipairs(tempTape[obj]) do
         add
         (
             finalTape, 
@@ -531,7 +555,6 @@ function tape.record(obj)
                 entry.level
             }
         )
-
     end
 end
 
@@ -554,9 +577,12 @@ function draw_gameplay()
         troubleshooting("animateNil", "No objects to animate")
     end
 
+    --Iterate through and animate each object which has an element of animation
     for index, anim_obj in pairs(table_toAnimate) do
         obj_animate(anim_obj)
     end
+
+    draw_door()
 
     draw_troubleshooting()
 
@@ -587,7 +613,7 @@ function obj_animate(obj)
             obj.spr.current = obj.spr.walkCycle[obj.spr.animTick]
         else
     end
-    elseif obj.spr.loopCycle then --If object is a simple sprite with a loop cycle
+    elseif obj.spr.loopCycle then --If object is a simple sprite with a loop cycle, like the hazards
         if not obj.spr.current then
             obj.spr.current = obj.spr.loopCycle[1]
         end
@@ -597,11 +623,22 @@ function obj_animate(obj)
             obj.spr.animTick = (obj.spr.animTick % #obj.spr.loopCycle) + 1
             obj.spr.current = obj.spr.loopCycle[obj.spr.animTick]
         end
-    elseif obj.spr.hoverCycle then
+    elseif obj.spr.hoverCycle then --If object is a simple sprite with a hover cycle, like the key
         if global_tick % global_framesPerSprite == 0 then
-            obj.coords.y += obj.spr.hoverCycle[obj.spr.animTick]
-            --a per-object anim tick cycles from 1 to the length of hoverCycle.
-            obj.spr.animTick = (obj.spr.animTick % #obj.spr.hoverCycle) + 1
+            if not obj.spr.hoverCycle.high then
+                obj.spr.hoverCycle.high = obj.coords.y + obj.spr.hoverCycle.range
+                obj.spr.hoverCycle.low = obj.coords.y - obj.spr.hoverCycle.range
+                obj.spr.hoverCycle.pole = 1
+            end
+
+            --Move object by one pixel per frame, respective of a maximum and minimum height relative to origin
+            obj.coords.y += obj.spr.hoverCycle.pole
+            if obj.coords.y >= obj.spr.hoverCycle.high then
+                obj.spr.hoverCycle.pole = -1
+            elseif obj.coords.y <= obj.spr.hoverCycle.low then
+                obj.spr.hoverCycle.pole = 1
+            end
+
         end
 
     else
@@ -609,7 +646,16 @@ function obj_animate(obj)
         --return
     end
 
-    spr(obj.spr.current, (obj.coords.x - (obj.spr.size * 4)), (obj.coords.y - (obj.spr.size * 4)), obj.spr.size, obj.spr.size)
+    spr(obj.spr.current, (obj.coords.x - (obj.spr.size * 4)), (obj.coords.y - (obj.spr.size * 4)), obj.spr.size, obj.spr.size, query_isFacingLeft(obj), false)
+
+end
+
+function draw_door()
+
+    local door_x = ((level_current.zone_success.corner_1.x + level_current.zone_success.corner_2.x) / 2) - (tileSize / 2)
+    local door_y = ((level_current.zone_success.corner_1.y + level_current.zone_success.corner_2.y) / 2) - (tileSize / 2)
+
+    spr(26, door_x, door_y)
 
 end
 
