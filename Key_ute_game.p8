@@ -56,15 +56,17 @@ function initialize_variables()
     tileSize = 8
     originOffset = 16
 
-global_framesPerSprite = 5
+    global_framesPerSprite = 5
     spriteFlag_solid = 0
     spriteFlag_loseCondition = 2 --Prob unused, might remove
-hoverCycle = {range = 3}
+    hoverCycle = {range = 3}
 
     range_hazard = (8 + char_player.width/2) --in pixels
     range_key = (8 + char_player.width/2)
 
-        sprite_hazardCycle = 
+    --Animation iterates through these sprites 
+    --It would be more elegant to set states and timing and construct the cycle on the fly
+    sprite_hazardCycle = 
     {
         66, 64, 64, 64, 64, 64, 64, 64,--Rest state 1, settles for 1 frame then rests
         68, 70, 72, 68, 70, 72, --Spinning state 1
@@ -72,12 +74,11 @@ hoverCycle = {range = 3}
         68, 70, 72, 68, 70, 72, --Spinning State 2, identical to first
     }
     
-    level_initial = "level_heart"--"level_I"--
+    level_initial = "level_I"--"level_heart"--
     levels = {}
     create_levels()
 
     table_toAnimate = {}
-
 
 end
 
@@ -125,7 +126,6 @@ function init_gameplay()
 
     --Add the player to the ToAnimate table
     add(table_toAnimate, char_player)
-    --Add the key to the ToAnimate table
     
     key_current = 
     {
@@ -137,6 +137,7 @@ function init_gameplay()
             hoverCycle = hoverCycle,
         }
     }
+    --Add the key to the ToAnimate table
     add(table_toAnimate, key_current)
     --Give each entry in the hazards table a loop cycle variable (indicates this is an object with a simple anim, rather than a walk cycle) 
     --then add each entry in the table to the ToAnimate table
@@ -154,11 +155,10 @@ function init_gameplay()
     --TP player to spawn coords
     char_player.coords = {x = coords_spawn.x, y = coords_spawn.y}
 
-
 end
 
 function create_level(level_title, seqOrder, coords_spawn, 
-    zone_success, coords_tileOrigin, coords_key, table_hazards)
+    zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer)
 
     if levels[level_title] then 
         troubleshooting("levelExists", "Hey, that level, "..level_title..",\n already exists! \n") 
@@ -172,13 +172,14 @@ function create_level(level_title, seqOrder, coords_spawn,
         zone_success = zone_success or {corner_1 = {x = (0 * tileSize), y = (0 * tileSize)}, corner_2 = {x = (2 * tileSize), y = (2 * tileSize)}},
         coords_tileOrigin = coords_tileOrigin or {x = 0, y = 0},
         coords_key = coords_key or {x = 64, y = 64},
-        table_hazards = table_hazards or {{coords = {x = 5, y = 5},}}
+        table_hazards = table_hazards or {{coords = {x = 5, y = 5},}},
+        levelTimer = levelTimer or {max = 300}
     }
 end
 
 function create_levels()
     --[[level_title, seqOrder, coords_spawn, 
-    zone_success, coords_tileOrigin, coords_key. table_hazards]]
+    zone_success, coords_tileOrigin, coords_key, table_hazards, timer]]
     --[[
         I want to use the coords from the map editor so I have to 
         convert each value here to screen space and account for offset.
@@ -202,7 +203,8 @@ function create_levels()
         { --table_hazards
             {coords = {x = toScr_wOff(6.5), y = toScr_wOff(8)}},
             {coords = {x = toScr_wOff(9.5), y = toScr_wOff(8)}},
-        }
+        }, --levelTimer
+        {max = 300}
     )
 
     create_level
@@ -217,7 +219,27 @@ function create_levels()
             {coords = {x = toScr_wOff(24.5, 1), y = toScr_wOff(5)}},
             {coords = {x = toScr_wOff(23, 1), y = toScr_wOff(7)}},
             {coords = {x = toScr_wOff(26, 1), y = toScr_wOff(7)}},
-        }
+        }, --levelTimer
+        {max = 300}
+    )
+
+    create_level
+    (
+        "level_u", --level_title
+        3, --seqOrder
+        {x = toScr_wOff(41, 2), y = toScr_wOff(5)}, --coords_spawn
+        {corner_1 = {x = toScr_wOff(38, 2), y = toScr_wOff(5)}, corner_2 = {x = toScr_wOff(39, 2), y = toScr_wOff(6)}}, --zone_success
+        {x = (originOffset * 2), y = 0}, --coords_tileOrigin
+        {x = toScr_wOff(39, 2), y = toScr_wOff(11)}, --coords_key
+        { --table_hazards
+            {coords = {x = toScr_wOff(40, 2), y = toScr_wOff(9)}},
+            {coords = {x = toScr_wOff(40, 2), y = toScr_wOff(7)}},
+            {coords = {x = toScr_wOff(35, 2), y = toScr_wOff(5)}},
+            {coords = {x = toScr_wOff(35, 2), y = toScr_wOff(3)}},
+            {coords = {x = toScr_wOff(45, 2), y = toScr_wOff(5)}},
+            {coords = {x = toScr_wOff(45, 2), y = toScr_wOff(3)}},
+        }, --levelTimer
+        {max = 300}
     )
 
 end
@@ -323,7 +345,7 @@ function update_gameplay()
     --Iterate global tick
     tick_update()
 
-
+    levelTimer.update()
 
     --Validate player
     if not char_player then
@@ -331,25 +353,25 @@ function update_gameplay()
     end
 
     --Early in frame, move player
-    --then record
+    --then record TODO
     move_player(char_player)
     tempTape.write(char_player, char_player.coords.x)
 
     --If player is in success zone, 
-    --advance level TODO
+    --advance level
     if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
 
         advance_level()
 
     end
 
+    --If player picks up key, stop rendering the sprite
     if query_doesCollide_range(char_player.coords, coords_key, range_key) then
         char_player.hasKey = true
         del(table_toAnimate, key_current)
     end
 
-    --For each hazard in table, if colliding with hazard, 
-    --die TODO
+    --For each hazard in table: if colliding with hazard, die
     for index, hazard in pairs(table_hazards) do
         if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
             die()
@@ -432,6 +454,33 @@ function tick_update()
 
 end
 
+levelTimer = {} --Initialize level timer
+--Function intentially uses reference of current level's timer
+--Level timer ticks down and provides framework for the timer visual.
+--TODO Need to implement a timer visual
+function levelTimer.update()
+
+    local timer = level_current.levelTimer
+
+    if not timer.current then
+        timer.current = timer.max
+    end
+
+    timer.current -= 1
+
+    if timer.current < 0 then
+        troubleshooting("levelTimer", "Too slow")
+        die()
+    end
+
+end
+
+function levelTimer.reset()
+
+    level_current.levelTimer.current = level_current.levelTimer.max
+
+end
+
 function advance_level()
 
     local seqOrder_next = level_current.seqOrder + 1
@@ -454,7 +503,7 @@ function advance_level()
 end
 
 function die()
-
+    levelTimer.reset()
     init_gameplay()
 
 end
@@ -465,8 +514,8 @@ function query_canMove(x, y, obj_width, obj_height)
 
     --I'm collision checking the outer points of a cross centered in the sprite, 
     --rather than the center or corners
-    offset_width = ((obj_width + 1 - .5) / 2) --Add 1 because pixel counts are 0 indexed, subtract a bit for gamefeel, divide by two for centering
-    offset_height = ((obj_height + 1 - .5) / 2)
+    offset_width = (((obj_width + 1) - .5) / 2) --Add 1 because pixel counts are 0 indexed, subtract a bit for gamefeel, divide by two for centering
+    offset_height = (((obj_height + 1) - .5) / 2)
 
     local edges = {}
 
@@ -540,6 +589,10 @@ function tape.record(obj)
     --Validate tempTape
     if not tempTape[obj] then
         troubleshooting("recordNil", "No tempTape to record")
+    end
+
+    if not finalTape then
+        finalTape = {}
     end
 
     --Final tape is a continuously constructed table
