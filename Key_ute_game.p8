@@ -12,7 +12,7 @@ function _init()
 
     initialize_variables()
 
-    init_gameplay()
+    init_game()
 
 end
 
@@ -77,17 +77,26 @@ function initialize_variables()
     level_initial = "level_I"--"level_heart"--
     levels = {}
     create_levels()
-
+    
     table_toAnimate = {}
-
+    
 end
 
-function init_gameplay()
+function init_game()
 
     --Construction events
     --
-    _update = update_gameplay
-    _draw = draw_gameplay
+    init_game_construction()
+
+    --Game Cycle Start Events
+    --
+    init_game_cycleStart()
+end
+
+function init_game_construction()
+
+    _update = update_game
+    _draw = draw_game
 
     --Start creating levels
     if not level_current then --initialize level_current
@@ -111,19 +120,19 @@ function init_gameplay()
         troubleshooting("levelParams","Hey, setting the level params doesn't work! \n")
         return
     end
+end
 
-    --Game Cycle Start Events
-    --
-
+function init_game_cycleStart()
+    
     --Clear table toAnimate
     table_toAnimate = {}
-
+    
     --Clear temporary tape
     tempTape.clear(char_player)
-
+    
     --Reset key progress
     char_player.hasKey = false
-
+    
     --Add the player to the ToAnimate table
     add(table_toAnimate, char_player)
     
@@ -147,14 +156,13 @@ function init_gameplay()
         hazard.spr.loopCycle = sprite_hazardCycle
         add(table_toAnimate, hazard)
     end
-
+    
     --Slow player dramatically on level advance
     char_player.vel.x = impose_global_dampen(char_player.vel.x)
     char_player.vel.y = impose_global_dampen(char_player.vel.y)
-
+    
     --TP player to spawn coords
     char_player.coords = {x = coords_spawn.x, y = coords_spawn.y}
-
 end
 
 function create_level(level_title, seqOrder, coords_spawn, 
@@ -244,139 +252,70 @@ function create_levels()
 
 end
 
---Often my working numbers are higher values for more precision, so I need to 
---convert them to a value more appropriate for pixels/every frame calculation
-function impose_global_dampen(val)
-    if type(val) == "number" then 
-        return val * global_dampen
-    else
-        troubleshooting("notNumberInGlob", "Hey, that's not a number \nin impose_global_dampen! \n")
-        return
-    end
-end
-
--->8
---Utility Functions
-
---Troubleshooting function which is as simple as possible; 
---Each message gets an ID so it doesn't get duplicated, then all messages from start of runtime
---are stored in a table so they can be drawn at the end of the frame.
---Troubleshooting messages can be added from anywhere in the stack, overwrite their previous messages, and don't expire.
-function troubleshooting(id, msg)
-
-    if not ts_messages then 
-        ts_messages = {} 
-    end
-
-    ts_messages[id] = msg
-
-end
-
---Draw all messages accumulated since runtime began,
---all reasonably spaced and function is placed at the very end
---of the draw so that it overrides all other drawing
-function draw_troubleshooting()
-
-    local ts_messageOffset = 0
-
-    if ts_messages == nil then
-        return
-    end
-
-    for key, message in pairs(ts_messages) do
-        print(message, 4, 4 + ts_messageOffset, tileSize)
-        ts_messageOffset += tileSize
-    end
-
-end
-
---If velocity is a given fraction of the moveSpeed, halt
-function query_shouldHalt(vel, moveSpeed)
-    if ((abs(vel)) < (moveSpeed / 16)) then
-        return true
-    else
-        return false
-    end
-end
-
--- Checks if object coordinates are within a specified range of a given point
-function query_doesCollide_range(obj_coords, point_coords, range)
-    local differenceInX = obj_coords.x - point_coords.x
-    local differenceInY = obj_coords.y - point_coords.y
-    local euclideanDistance = sqrt(differenceInX^2 + differenceInY^2)
-
-    if euclideanDistance < range then
-        return true
-    else
-        return false
-    end
-end
-
---If player coords are within bounds of zone, return true
-function query_doesCollide_zone(obj, zone)
-
-    local x = obj.coords.x
-    local y = obj.coords.y
-
-    if (zone.corner_1.x < x) 
-    and (x < zone.corner_2.x) 
-    and (zone.corner_1.y < y) 
-    and (y < zone.corner_2.y) 
-    then
-        return true
-    else
-        return false
-    end
-end
-
-function query_isFacingLeft(obj)
-    if obj.direction == "⬅️" then 
-        return true
-    else
-        return false
-    end
-end
-
 -->8
 --Update Functions
 
-function update_gameplay()
+function update_game_systems() --Tick, cycle, timer updates
     
     --Iterate global tick
     tick_update()
-
+    
     levelTimer.update()
 
-    --Validate player
-    if not char_player then
-        troubleshooting("noChar", "Um, you lost your character! \n")
-    end
+end
 
-    --Early in frame, move player
-    --then record TODO
-    move_player(char_player)
-    tempTape.write(char_player, char_player.coords.x)
-
-    --If player is in success zone, 
-    --advance level
-    if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
-
-        advance_level()
-
-    end
-
-    --If player picks up key, stop rendering the sprite
-    if query_doesCollide_range(char_player.coords, coords_key, range_key) then
-        char_player.hasKey = true
-        del(table_toAnimate, key_current)
-    end
-
-    --For each hazard in table: if colliding with hazard, die
-    for index, hazard in pairs(table_hazards) do
-        if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
-            die()
+function update_game_validation()
+    
+        --Validate player
+        if not char_player then
+            troubleshooting("noChar", "Um, you lost your character! \n")
         end
-    end
+
+end
+
+function update_game_move()
+    
+        --Early in frame, move player
+        --then record TODO
+        move_player(char_player)
+        tempTape.write(char_player, char_player.coords.x)
+
+end
+
+function update_game_conditions()
+    
+        --If player is in success zone, 
+        --advance level
+        if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
+    
+            advance_level()
+    
+        end
+    
+        --If player picks up key, stop rendering the sprite
+        if query_doesCollide_range(char_player.coords, coords_key, range_key) then
+            char_player.hasKey = true
+            del(table_toAnimate, key_current)
+        end
+    
+        --For each hazard in table: if colliding with hazard, die
+        for index, hazard in pairs(table_hazards) do
+            if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
+                die()
+            end
+        end
+    
+end
+
+function update_game()
+
+    update_game_systems()
+
+    update_game_validation()
+    
+    update_game_move()
+    
+    update_game_conditions()
 
 end
 
@@ -504,7 +443,7 @@ end
 
 function die()
     levelTimer.reset()
-    init_gameplay()
+    init_game()
 
 end
 
@@ -620,7 +559,7 @@ end
 -->8
 --Draw Functions
 
-function draw_gameplay()
+function draw_game()
 
     cls(2)
 
@@ -713,11 +652,103 @@ function draw_door()
 end
 
 function draw_player()
-
+    
     spr(52, char_player.coords.x, char_player.coords.y)
+    
+end
+
+--Often my working numbers are higher values for more precision, so I need to 
+--convert them to a value more appropriate for pixels/every frame calculation
+function impose_global_dampen(val)
+    if type(val) == "number" then 
+        return val * global_dampen
+    else
+        troubleshooting("notNumberInGlob", "Hey, that's not a number \nin impose_global_dampen! \n")
+        return
+    end
+end
+
+-->8
+--Utility Functions
+
+--Troubleshooting function which is as simple as possible; 
+--Each message gets an ID so it doesn't get duplicated, then all messages from start of runtime
+--are stored in a table so they can be drawn at the end of the frame.
+--Troubleshooting messages can be added from anywhere in the stack, overwrite their previous messages, and don't expire.
+function troubleshooting(id, msg)
+
+    if not ts_messages then 
+        ts_messages = {} 
+    end
+
+    ts_messages[id] = msg
 
 end
 
+--Draw all messages accumulated since runtime began,
+--all reasonably spaced and function is placed at the very end
+--of the draw so that it overrides all other drawing
+function draw_troubleshooting()
+
+    local ts_messageOffset = 0
+
+    if ts_messages == nil then
+        return
+    end
+
+    for key, message in pairs(ts_messages) do
+        print(message, 4, 4 + ts_messageOffset, tileSize)
+        ts_messageOffset += tileSize
+    end
+
+end
+
+--If velocity is a given fraction of the moveSpeed, halt
+function query_shouldHalt(vel, moveSpeed)
+    if ((abs(vel)) < (moveSpeed / 16)) then
+        return true
+    else
+        return false
+    end
+end
+
+-- Checks if object coordinates are within a specified range of a given point
+function query_doesCollide_range(obj_coords, point_coords, range)
+    local differenceInX = obj_coords.x - point_coords.x
+    local differenceInY = obj_coords.y - point_coords.y
+    local euclideanDistance = sqrt(differenceInX^2 + differenceInY^2)
+
+    if euclideanDistance < range then
+        return true
+    else
+        return false
+    end
+end
+
+--If player coords are within bounds of zone, return true
+function query_doesCollide_zone(obj, zone)
+
+    local x = obj.coords.x
+    local y = obj.coords.y
+
+    if (zone.corner_1.x < x) 
+    and (x < zone.corner_2.x) 
+    and (zone.corner_1.y < y) 
+    and (y < zone.corner_2.y) 
+    then
+        return true
+    else
+        return false
+    end
+end
+
+function query_isFacingLeft(obj)
+    if obj.direction == "⬅️" then 
+        return true
+    else
+        return false
+    end
+end
 __gfx__
 0000000077f7567f567f77f7756f756f555555555d666666ddddddddbbc3333cdddd65dd55555555777777770000000000000000000000000000000000000000
 000000007777567f567f77f775677567500000555d666666dccccccdbc333bbcdddd65ddd66666657f7777770000000000000000000000000000000000000000
