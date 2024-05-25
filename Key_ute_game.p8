@@ -16,93 +16,27 @@ function _init()
 
 end
 
---A simple function for creating variables that must exist on program 
---start or are useful to be able to quickly tweak when developing. 
-function initialize_variables()
-    foo = "bar"
-
-    --This will only be the initial stats - if there's anything I want to preserve I should copy it when the program starts.
-    char_player =
-    {
-        coords = {x = 16, y = 16},
-        direction = "➡️", --For reference: ⬅️➡️⬆️⬇️
-        moveSpeed = 16, --base moveSpeed, everything else will be based on this
-        vel = {x = 0, y = 0},
-        intended = {x = 16, y = 16},
-        width = 7, --remeber that pixel counting effectively starts at 0
-        height = 7,
-        spr = 
-        {
-            idle = 56,
-            walkCycle_start = 57,
-            walkCycle_length = 4,
-            walkCycle = {},
-            animTick = 1,
-            current = 16,
-            size = 1
-        },
-        hasKey = false,
-    }
-    --Construct a list of the sprites that make-up the walk cycle
-    --It would be wise to make this a more general function and more robust, but this will do for now
-    for i = 1, char_player.spr.walkCycle_length do
-        add(char_player.spr.walkCycle, char_player.spr.walkCycle_start + i - 1)
-    end
-
-    global_physicsDrag = .92 -- generally, movement should be multiplied by this to gradually reduce velocity each frame
-    global_moveSpeedMax = 8 --Multiply obj moveSpeed by this number
-    global_dampen = .02 --Multiply anything related to movement to convert my working numbers into numbers appropriate for pixels
-    global_tick = 0
-    tileSize = 8
-    originOffset = 16
-
-    global_framesPerSprite = 5
-    spriteFlag_solid = 0
-    spriteFlag_loseCondition = 2 --Prob unused, might remove
-    hoverCycle = {range = 3}
-
-    range_hazard = (8 + char_player.width/2) --in pixels
-    range_key = (8 + char_player.width/2)
-
-    --Animation iterates through these sprites 
-    --It would be more elegant to set states and timing and construct the cycle on the fly
-    sprite_hazardCycle = 
-    {
-        66, 64, 64, 64, 64, 64, 64, 64,--Rest state 1, settles for 1 frame then rests
-        68, 70, 72, 68, 70, 72, --Spinning state 1
-        64, 66, 66, 66, 66, 66, 66, 66, --Rest State 2, settles then rests
-        68, 70, 72, 68, 70, 72, --Spinning State 2, identical to first
-    }
-    
-    level_initial = "level_I"--"level_heart"--
-    levels = {}
-    create_levels()
-    
-    table_toAnimate = {}
-    
-end
-
 function init_game()
-
+    
     --Construction events
     --
     init_game_construction()
-
+    
     --Game Cycle Start Events
     --
     init_game_cycleStart()
 end
 
 function init_game_construction()
-
+    
     _update = update_game
     _draw = draw_game
-
+    
     --Start creating levels
     if not level_current then --initialize level_current
         level_current = levels[level_initial]
     end
-
+    
     --Set current conditions based on the current level's parameters
     coords_spawn = level_current.coords_spawn
     zone_success = level_current.zone_success
@@ -150,24 +84,90 @@ function init_game_cycleStart()
     add(table_toAnimate, key_current)
     --Give each entry in the hazards table a loop cycle variable (indicates this is an object with a simple anim, rather than a walk cycle) 
     --then add each entry in the table to the ToAnimate table
-    for index, hazard in ipairs(table_hazards) do
-        hazard.spr = {}
-        hazard.spr.size = 2
-        hazard.spr.loopCycle = sprite_hazardCycle
-        add(table_toAnimate, hazard)
+        for index, hazard in ipairs(table_hazards) do
+            hazard.spr = {}
+            hazard.spr.size = 2
+            hazard.spr.loopCycle = sprite_hazardCycle
+            add(table_toAnimate, hazard)
+        end
+        
+        --Slow player dramatically on level advance
+        char_player.vel.x = impose_global_dampen(char_player.vel.x)
+        char_player.vel.y = impose_global_dampen(char_player.vel.y)
+        
+        --TP player to spawn coords
+        char_player.coords = {x = coords_spawn.x, y = coords_spawn.y}
     end
     
-    --Slow player dramatically on level advance
-    char_player.vel.x = impose_global_dampen(char_player.vel.x)
-    char_player.vel.y = impose_global_dampen(char_player.vel.y)
+    --A simple function for creating variables that must exist on program 
+    --start or are useful to be able to quickly tweak when developing. 
+    function initialize_variables()
+        foo = "bar"
     
-    --TP player to spawn coords
-    char_player.coords = {x = coords_spawn.x, y = coords_spawn.y}
-end
-
-function create_level(level_title, seqOrder, coords_spawn, 
-    zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer)
-
+        --This will only be the initial stats - if there's anything I want to preserve I should copy it when the program starts.
+        char_player =
+        {
+            coords = {x = 16, y = 16},
+            direction = "➡️", --For reference: ⬅️➡️⬆️⬇️
+            moveSpeed = 16, --base moveSpeed, everything else will be based on this
+            vel = {x = 0, y = 0},
+            intended = {x = 16, y = 16},
+            width = 7, --remeber that pixel counting effectively starts at 0
+            height = 7,
+            spr = 
+            {
+                idle = 56,
+                walkCycle_start = 57,
+                walkCycle_length = 4,
+                walkCycle = {},
+                animTick = 1,
+                current = 16,
+                size = 1
+            },
+            hasKey = false,
+        }
+        --Construct a list of the sprites that make-up the walk cycle
+        --It would be wise to make this a more general function and more robust, but this will do for now
+        for i = 1, char_player.spr.walkCycle_length do
+            add(char_player.spr.walkCycle, char_player.spr.walkCycle_start + i - 1)
+        end
+    
+        global_physicsDrag = .92 -- generally, movement should be multiplied by this to gradually reduce velocity each frame
+        global_moveSpeedMax = 8 --Multiply obj moveSpeed by this number
+        global_dampen = .02 --Multiply anything related to movement to convert my working numbers into numbers appropriate for pixels
+        global_tick = 0
+        tileSize = 8
+        originOffset = 16
+    
+        global_framesPerSprite = 5
+        spriteFlag_solid = 0
+        spriteFlag_loseCondition = 2 --Prob unused, might remove
+        hoverCycle = {range = 3}
+    
+        range_hazard = (8 + char_player.width/2) --in pixels
+        range_key = (8 + char_player.width/2)
+    
+        --Animation iterates through these sprites 
+        --It would be more elegant to set states and timing and construct the cycle on the fly
+        sprite_hazardCycle = 
+        {
+            66, 64, 64, 64, 64, 64, 64, 64,--Rest state 1, settles for 1 frame then rests
+            68, 70, 72, 68, 70, 72, --Spinning state 1
+            64, 66, 66, 66, 66, 66, 66, 66, --Rest State 2, settles then rests
+            68, 70, 72, 68, 70, 72, --Spinning State 2, identical to first
+        }
+        
+        level_initial = "level_I"--"level_heart"--
+        levels = {}
+        create_levels()
+        
+        table_toAnimate = {}
+        
+    end
+    
+    function create_level(level_title, seqOrder, coords_spawn, 
+        zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer)
+        
     if levels[level_title] then 
         troubleshooting("levelExists", "Hey, that level, "..level_title..",\n already exists! \n") 
         return
@@ -255,6 +255,18 @@ end
 -->8
 --Update Functions
 
+function update_game()
+
+    update_game_systems()
+
+    update_game_validation()
+    
+    update_game_move()
+    
+    update_game_conditions()
+
+end
+
 function update_game_systems() --Tick, cycle, timer updates
     
     --Iterate global tick
@@ -282,43 +294,31 @@ function update_game_move()
 
 end
 
+
 function update_game_conditions()
     
-        --If player is in success zone, 
-        --advance level
-        if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
+    --If player is in success zone, 
+    --advance level
+    if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
+        
+        advance_level()
     
-            advance_level()
+    end
     
+    --If player picks up key, stop rendering the sprite
+    if query_doesCollide_range(char_player.coords, coords_key, range_key) then
+        char_player.hasKey = true
+        del(table_toAnimate, key_current)
+    end
+    
+    --For each hazard in table: if colliding with hazard, die
+    for index, hazard in pairs(table_hazards) do
+        if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
+            die()
         end
-    
-        --If player picks up key, stop rendering the sprite
-        if query_doesCollide_range(char_player.coords, coords_key, range_key) then
-            char_player.hasKey = true
-            del(table_toAnimate, key_current)
-        end
-    
-        --For each hazard in table: if colliding with hazard, die
-        for index, hazard in pairs(table_hazards) do
-            if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
-                die()
-            end
-        end
+    end
     
 end
-
-function update_game()
-
-    update_game_systems()
-
-    update_game_validation()
-    
-    update_game_move()
-    
-    update_game_conditions()
-
-end
-
 --Find players new x, y coords by maintaining velocity
 function move_player(player)
 
@@ -561,10 +561,9 @@ end
 
 function draw_game()
 
-    cls(2)
-
+    
     draw_map()
-
+    
     if next(table_toAnimate) == nil then
         troubleshooting("animateNil", "No objects to animate")
     end
@@ -573,17 +572,34 @@ function draw_game()
     for index, anim_obj in pairs(table_toAnimate) do
         obj_animate(anim_obj)
     end
-
+    
     draw_door()
-
+    
     draw_troubleshooting()
-
+    
 end
 
 function draw_map()
-
+    
     map(coords_tileOrigin.x, coords_tileOrigin.y, 0, 0, 16, 16)
+    
+end
 
+function draw_ojects()
+    
+end
+
+function draw_animation()
+    
+end
+
+function draw_player()
+    
+end
+
+function clear_screen()
+    
+    cls(2)
 end
 
 function obj_animate(obj)
