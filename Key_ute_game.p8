@@ -163,7 +163,6 @@ end
 
 function draw_game()
 
-
     draw_map()
 
     if next(table_toAnimate) == nil then
@@ -586,7 +585,6 @@ function tape.play(obj)
 
 
 
-end
 function clear_screen()
 
     cls(2)
