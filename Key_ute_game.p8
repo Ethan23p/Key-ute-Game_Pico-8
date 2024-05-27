@@ -5,8 +5,7 @@ __lua__
 -- idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
 -- for Cassie ♥
 
--->8
---Construction Functions
+-->8 Flow Functions - init, update, draw
 
 function _init()
 
@@ -17,33 +16,30 @@ function _init()
 end
 
 function init_game()
-    
-    --Construction events
-    --
+
     init_game_construction()
-    
-    --Game Cycle Start Events
-    --
+
     init_game_cycleStart()
+
 end
 
 function init_game_construction()
-    
+
     _update = update_game
     _draw = draw_game
-    
+
     --Start creating levels
     if not level_current then --initialize level_current
         level_current = levels[level_initial]
     end
-    
+
     --Set current conditions based on the current level's parameters
     coords_spawn = level_current.coords_spawn
     zone_success = level_current.zone_success
     coords_tileOrigin = level_current.coords_tileOrigin
     coords_key = level_current.coords_key
     table_hazards = level_current.table_hazards
-    
+
     --Validate level parameters
     if coords_spawn == nil 
     or zone_success == nil 
@@ -57,19 +53,19 @@ function init_game_construction()
 end
 
 function init_game_cycleStart()
-    
+
     --Clear table toAnimate
     table_toAnimate = {}
-    
+
     --Clear temporary tape
     tempTape.clear(char_player)
-    
+
     --Reset key progress
     char_player.hasKey = false
-    
+
     --Add the player to the ToAnimate table
     add(table_toAnimate, char_player)
-    
+
     key_current = 
     {
         coords = coords_key,
@@ -90,42 +86,39 @@ function init_game_cycleStart()
             hazard.spr.loopCycle = sprite_hazardCycle
             add(table_toAnimate, hazard)
         end
-        
+
         --Slow player dramatically on level advance
         char_player.vel.x = impose_global_dampen(char_player.vel.x)
         char_player.vel.y = impose_global_dampen(char_player.vel.y)
-        
+
         --TP player to spawn coords
         char_player.coords = {x = coords_spawn.x, y = coords_spawn.y}
-    
-end
 
--->8
---Update Functions
+end
 
 function update_game()
 
     update_game_systems()
 
     update_game_validation()
-    
+
     update_game_move()
-    
+
     update_game_conditions()
 
 end
 
 function update_game_systems() --Tick, cycle, timer updates
-    
+
     --Iterate global tick
     tick_update()
-    
+
     levelTimer.update()
 
 end
 
 function update_game_validation()
-    
+
         --Validate player
         if not char_player then
             troubleshooting("noChar", "Um, you lost your character! \n")
@@ -134,7 +127,7 @@ function update_game_validation()
 end
 
 function update_game_move()
-    
+
         --Early in frame, move player
         --then record TODO
         move_player(char_player)
@@ -144,38 +137,35 @@ end
 
 
 function update_game_conditions()
-    
+
     --If player is in success zone, 
     --advance level
     if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
-        
+
         advance_level()
-    
+
     end
-    
+
     --If player picks up key, stop rendering the sprite
     if query_doesCollide_range(char_player.coords, coords_key, range_key) then
         char_player.hasKey = true
         del(table_toAnimate, key_current)
     end
-    
+
     --For each hazard in table: if colliding with hazard, die
     for index, hazard in pairs(table_hazards) do
         if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
             die()
         end
     end
-    
-end
 
--->8
---Draw Functions
+end
 
 function draw_game()
 
-    
+
     draw_map()
-    
+
     if next(table_toAnimate) == nil then
         troubleshooting("animateNil", "No objects to animate")
     end
@@ -184,36 +174,36 @@ function draw_game()
     for index, anim_obj in pairs(table_toAnimate) do
         obj_animate(anim_obj)
     end
-    
+
     draw_door()
-    
+
     draw_troubleshooting()
-    
+
 end
 
 function draw_map()
-    
+
     map(coords_tileOrigin.x, coords_tileOrigin.y, 0, 0, 16, 16)
-    
+
 end
 
 function draw_ojects()
-    
+
 end
 
 function draw_animation()
-    
+
 end
 
 function draw_player()
-    
+
 end
 
 --A simple function for creating variables that must exist on program 
     --start or are useful to be able to quickly tweak when developing. 
     function initialize_variables()
         foo = "bar"
-        
+
         --This will only be the initial stats - if there's anything I want to preserve I should copy it when the program starts.
         char_player =
         {
@@ -266,17 +256,17 @@ end
         64, 66, 66, 66, 66, 66, 66, 66, --Rest State 2, settles then rests
         68, 70, 72, 68, 70, 72, --Spinning State 2, identical to first
     }
-    
+
     level_initial = "level_I"--"level_heart"--
     levels = {}
     create_levels()
-    
+
     table_toAnimate = {}
 end
 
 function create_level(level_title, seqOrder, coords_spawn, 
     zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer)
-    
+
     if levels[level_title] then 
         troubleshooting("levelExists", "Hey, that level, "..level_title..",\n already exists! \n") 
         return
@@ -410,7 +400,7 @@ function move_player(player)
         player.vel.y *= -.5
         player.intended.y = player.coords.y + (impose_global_dampen(player.vel.y))
     end
-    
+
     --Compare player's intended x to their current x, if negative they are facing left, else right
     --For reference: ⬅️➡️⬆️⬇️
     if (player.intended.x - player.coords.x) < 0 then
@@ -533,7 +523,7 @@ function query_flagType(coords_input, flagType)
     local sprite_address = mget(map_x, map_y)
     -- Get the flag(s) associated with the sprite
     local spriteFlags = fget(sprite_address)
-    
+
     -- Check for flag type of interest based on spriteFlags
     for key, flag in ipairs(spriteFlags_ofInterest) do
         if (spriteFlags & 2^flag) > 0 then
@@ -598,7 +588,7 @@ function tape.play(obj)
 
 end
 function clear_screen()
-    
+
     cls(2)
 end
 
@@ -668,9 +658,9 @@ function draw_door()
 end
 
 function draw_player()
-    
+
     spr(52, char_player.coords.x, char_player.coords.y)
-    
+
 end
 
 --Often my working numbers are higher values for more precision, so I need to 
@@ -733,7 +723,7 @@ function query_doesCollide_range(obj_coords, point_coords, range)
     local differenceInX = obj_coords.x - point_coords.x
     local differenceInY = obj_coords.y - point_coords.y
     local euclideanDistance = sqrt(differenceInX^2 + differenceInY^2)
-    
+
     if euclideanDistance < range then
         return true
     else
