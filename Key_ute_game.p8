@@ -5,7 +5,8 @@ __lua__
 -- idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
 -- for Cassie ♥
 
--->8 Flow Functions - init, update, draw
+-->8
+--Flow Functions - init, update, draw
 
 function _init()
 
@@ -58,7 +59,7 @@ function init_game_cycleStart()
     table_toAnimate = {}
 
     --Clear temporary tape
-    tempTape.clear(char_player)
+    tempTape_clear(char_player)
 
     --Reset key progress
     char_player.hasKey = false
@@ -113,7 +114,7 @@ function update_game_systems() --Tick, cycle, timer updates
     --Iterate global tick
     tick_update()
 
-    levelTimer.update()
+    levelTimer_update()
 
 end
 
@@ -131,7 +132,7 @@ function update_game_move()
         --Early in frame, move player
         --then record TODO
         move_player(char_player)
-        tempTape.write(char_player, char_player.coords.x)
+        tempTape_write(char_player, char_player.coords.x)
 
 end
 
@@ -197,6 +198,9 @@ end
 function draw_player()
 
 end
+
+-->8
+--Init Functions
 
 --A simple function for creating variables that must exist on program 
     --start or are useful to be able to quickly tweak when developing. 
@@ -350,6 +354,9 @@ function create_levels()
 
 end
 
+-->8
+--Update Functions
+
 --Find players new x, y coords by maintaining velocity
 function move_player(player)
 
@@ -424,11 +431,10 @@ function tick_update()
 
 end
 
-levelTimer = {} --Initialize level timer
 --Function intentially uses reference of current level's timer
 --Level timer ticks down and provides framework for the timer visual.
 --TODO Need to implement a timer visual
-function levelTimer.update()
+function levelTimer_update()
 
     local timer = level_current.levelTimer
 
@@ -445,9 +451,9 @@ function levelTimer.update()
 
 end
 
-function levelTimer.reset()
+function levelTimer_reset()
 
-    level_current.levelTimer.current = level_current.levelTimer.max
+    level_current.levelTimer_current = level_current.levelTimer_max
 
 end
 
@@ -466,14 +472,14 @@ function advance_level()
         foreach(levels, query_isNextLevel())
     end
 
-    tape.record(char_player)
+    tape_record(char_player)
 
     die()
 
 end
 
 function die()
-    levelTimer.reset()
+    levelTimer_reset()
     init_game()
 
 end
@@ -534,27 +540,26 @@ function query_flagType(coords_input, flagType)
     return false
 end
 
---For the recording of the player's movements I'm analogizing it to VHS/film tape
-tempTape = {} --Initialize tempTape
-
 --Clear tempTape simply; I just want to be explicit for clarity
-function tempTape.clear(obj)
+function tempTape_clear(obj)
+
+    if not tempTape then
+        tempTape = {}
+    end
 
     tempTape[obj] = {}
 
 end
 
 --Add a single entry to tempTape
-function tempTape.write(obj)
+function tempTape_write(obj)
 
     add(tempTape[obj], {obj.coords.x, obj.coords.y, obj.direction, level_current})
 
 end
 
-tape = {} --initialize tape
-
 --Once the tempTape is finalized, record it to the final tape
-function tape.record(obj)
+function tape_record(obj)
 
     --Validate tempTape
     if not tempTape[obj] then
@@ -581,13 +586,17 @@ function tape.record(obj)
     end
 end
 
-function tape.play(obj)
+function tape_play(obj)
 
+end
 
+-->8
+--Draw Functions
 
 function clear_screen()
 
     cls(2)
+
 end
 
 function obj_animate(obj)
