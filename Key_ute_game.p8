@@ -97,77 +97,186 @@ function init_game_cycleStart()
         
         --TP player to spawn coords
         char_player.coords = {x = coords_spawn.x, y = coords_spawn.y}
+    
+end
+
+-->8
+--Update Functions
+
+function update_game()
+
+    update_game_systems()
+
+    update_game_validation()
+    
+    update_game_move()
+    
+    update_game_conditions()
+
+end
+
+function update_game_systems() --Tick, cycle, timer updates
+    
+    --Iterate global tick
+    tick_update()
+    
+    levelTimer.update()
+
+end
+
+function update_game_validation()
+    
+        --Validate player
+        if not char_player then
+            troubleshooting("noChar", "Um, you lost your character! \n")
+        end
+
+end
+
+function update_game_move()
+    
+        --Early in frame, move player
+        --then record TODO
+        move_player(char_player)
+        tempTape.write(char_player, char_player.coords.x)
+
+end
+
+
+function update_game_conditions()
+    
+    --If player is in success zone, 
+    --advance level
+    if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
+        
+        advance_level()
+    
     end
     
-    --A simple function for creating variables that must exist on program 
+    --If player picks up key, stop rendering the sprite
+    if query_doesCollide_range(char_player.coords, coords_key, range_key) then
+        char_player.hasKey = true
+        del(table_toAnimate, key_current)
+    end
+    
+    --For each hazard in table: if colliding with hazard, die
+    for index, hazard in pairs(table_hazards) do
+        if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
+            die()
+        end
+    end
+    
+end
+
+-->8
+--Draw Functions
+
+function draw_game()
+
+    
+    draw_map()
+    
+    if next(table_toAnimate) == nil then
+        troubleshooting("animateNil", "No objects to animate")
+    end
+
+    --Iterate through and animate each object which has an element of animation
+    for index, anim_obj in pairs(table_toAnimate) do
+        obj_animate(anim_obj)
+    end
+    
+    draw_door()
+    
+    draw_troubleshooting()
+    
+end
+
+function draw_map()
+    
+    map(coords_tileOrigin.x, coords_tileOrigin.y, 0, 0, 16, 16)
+    
+end
+
+function draw_ojects()
+    
+end
+
+function draw_animation()
+    
+end
+
+function draw_player()
+    
+end
+
+--A simple function for creating variables that must exist on program 
     --start or are useful to be able to quickly tweak when developing. 
     function initialize_variables()
         foo = "bar"
-    
+        
         --This will only be the initial stats - if there's anything I want to preserve I should copy it when the program starts.
         char_player =
         {
             coords = {x = 16, y = 16},
             direction = "➡️", --For reference: ⬅️➡️⬆️⬇️
-            moveSpeed = 16, --base moveSpeed, everything else will be based on this
-            vel = {x = 0, y = 0},
-            intended = {x = 16, y = 16},
-            width = 7, --remeber that pixel counting effectively starts at 0
-            height = 7,
-            spr = 
-            {
-                idle = 56,
-                walkCycle_start = 57,
-                walkCycle_length = 4,
-                walkCycle = {},
-                animTick = 1,
-                current = 16,
-                size = 1
-            },
-            hasKey = false,
-        }
-        --Construct a list of the sprites that make-up the walk cycle
-        --It would be wise to make this a more general function and more robust, but this will do for now
-        for i = 1, char_player.spr.walkCycle_length do
-            add(char_player.spr.walkCycle, char_player.spr.walkCycle_start + i - 1)
-        end
-    
-        global_physicsDrag = .92 -- generally, movement should be multiplied by this to gradually reduce velocity each frame
-        global_moveSpeedMax = 8 --Multiply obj moveSpeed by this number
-        global_dampen = .02 --Multiply anything related to movement to convert my working numbers into numbers appropriate for pixels
-        global_tick = 0
-        tileSize = 8
-        originOffset = 16
-    
-        global_framesPerSprite = 5
-        spriteFlag_solid = 0
-        spriteFlag_loseCondition = 2 --Prob unused, might remove
-        hoverCycle = {range = 3}
-    
-        range_hazard = (8 + char_player.width/2) --in pixels
-        range_key = (8 + char_player.width/2)
-    
-        --Animation iterates through these sprites 
-        --It would be more elegant to set states and timing and construct the cycle on the fly
-        sprite_hazardCycle = 
+        moveSpeed = 16, --base moveSpeed, everything else will be based on this
+        vel = {x = 0, y = 0},
+        intended = {x = 16, y = 16},
+        width = 7, --remeber that pixel counting effectively starts at 0
+        height = 7,
+        spr = 
         {
-            66, 64, 64, 64, 64, 64, 64, 64,--Rest state 1, settles for 1 frame then rests
-            68, 70, 72, 68, 70, 72, --Spinning state 1
-            64, 66, 66, 66, 66, 66, 66, 66, --Rest State 2, settles then rests
-            68, 70, 72, 68, 70, 72, --Spinning State 2, identical to first
-        }
-        
-        level_initial = "level_I"--"level_heart"--
-        levels = {}
-        create_levels()
-        
-        table_toAnimate = {}
-        
+            idle = 56,
+            walkCycle_start = 57,
+            walkCycle_length = 4,
+            walkCycle = {},
+            animTick = 1,
+            current = 16,
+            size = 1
+        },
+        hasKey = false,
+    }
+    --Construct a list of the sprites that make-up the walk cycle
+    --It would be wise to make this a more general function and more robust, but this will do for now
+    for i = 1, char_player.spr.walkCycle_length do
+        add(char_player.spr.walkCycle, char_player.spr.walkCycle_start + i - 1)
     end
+
+    global_physicsDrag = .92 -- generally, movement should be multiplied by this to gradually reduce velocity each frame
+    global_moveSpeedMax = 8 --Multiply obj moveSpeed by this number
+    global_dampen = .02 --Multiply anything related to movement to convert my working numbers into numbers appropriate for pixels
+    global_tick = 0
+    tileSize = 8
+    originOffset = 16
+
+    global_framesPerSprite = 5
+    spriteFlag_solid = 0
+    spriteFlag_loseCondition = 2 --Prob unused, might remove
+    hoverCycle = {range = 3}
+
+    range_hazard = (8 + char_player.width/2) --in pixels
+    range_key = (8 + char_player.width/2)
+
+    --Animation iterates through these sprites 
+    --It would be more elegant to set states and timing and construct the cycle on the fly
+    sprite_hazardCycle = 
+    {
+        66, 64, 64, 64, 64, 64, 64, 64,--Rest state 1, settles for 1 frame then rests
+        68, 70, 72, 68, 70, 72, --Spinning state 1
+        64, 66, 66, 66, 66, 66, 66, 66, --Rest State 2, settles then rests
+        68, 70, 72, 68, 70, 72, --Spinning State 2, identical to first
+    }
     
-    function create_level(level_title, seqOrder, coords_spawn, 
-        zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer)
-        
+    level_initial = "level_I"--"level_heart"--
+    levels = {}
+    create_levels()
+    
+    table_toAnimate = {}
+end
+
+function create_level(level_title, seqOrder, coords_spawn, 
+    zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer)
+    
     if levels[level_title] then 
         troubleshooting("levelExists", "Hey, that level, "..level_title..",\n already exists! \n") 
         return
@@ -252,73 +361,6 @@ function create_levels()
 
 end
 
--->8
---Update Functions
-
-function update_game()
-
-    update_game_systems()
-
-    update_game_validation()
-    
-    update_game_move()
-    
-    update_game_conditions()
-
-end
-
-function update_game_systems() --Tick, cycle, timer updates
-    
-    --Iterate global tick
-    tick_update()
-    
-    levelTimer.update()
-
-end
-
-function update_game_validation()
-    
-        --Validate player
-        if not char_player then
-            troubleshooting("noChar", "Um, you lost your character! \n")
-        end
-
-end
-
-function update_game_move()
-    
-        --Early in frame, move player
-        --then record TODO
-        move_player(char_player)
-        tempTape.write(char_player, char_player.coords.x)
-
-end
-
-
-function update_game_conditions()
-    
-    --If player is in success zone, 
-    --advance level
-    if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
-        
-        advance_level()
-    
-    end
-    
-    --If player picks up key, stop rendering the sprite
-    if query_doesCollide_range(char_player.coords, coords_key, range_key) then
-        char_player.hasKey = true
-        del(table_toAnimate, key_current)
-    end
-    
-    --For each hazard in table: if colliding with hazard, die
-    for index, hazard in pairs(table_hazards) do
-        if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
-            die()
-        end
-    end
-    
-end
 --Find players new x, y coords by maintaining velocity
 function move_player(player)
 
@@ -555,48 +597,6 @@ function tape.play(obj)
 
 
 end
-
--->8
---Draw Functions
-
-function draw_game()
-
-    
-    draw_map()
-    
-    if next(table_toAnimate) == nil then
-        troubleshooting("animateNil", "No objects to animate")
-    end
-
-    --Iterate through and animate each object which has an element of animation
-    for index, anim_obj in pairs(table_toAnimate) do
-        obj_animate(anim_obj)
-    end
-    
-    draw_door()
-    
-    draw_troubleshooting()
-    
-end
-
-function draw_map()
-    
-    map(coords_tileOrigin.x, coords_tileOrigin.y, 0, 0, 16, 16)
-    
-end
-
-function draw_ojects()
-    
-end
-
-function draw_animation()
-    
-end
-
-function draw_player()
-    
-end
-
 function clear_screen()
     
     cls(2)
@@ -733,7 +733,7 @@ function query_doesCollide_range(obj_coords, point_coords, range)
     local differenceInX = obj_coords.x - point_coords.x
     local differenceInY = obj_coords.y - point_coords.y
     local euclideanDistance = sqrt(differenceInX^2 + differenceInY^2)
-
+    
     if euclideanDistance < range then
         return true
     else
