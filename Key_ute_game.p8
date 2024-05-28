@@ -8,29 +8,67 @@ __lua__
 -->8
 --Flow Functions - init, update, draw
 
+--Initial function that is called when the program starts
 function _init()
 
-    initialize_variables()
+    init_variables()
 
     init_game()
 
 end
 
+--Sets or updates foundational and level-specific states and variables
 function init_game()
 
     init_game_construction()
 
-    init_game_cycleStart()
+    init_game_runStart()
 
 end
 
+--Every frame, update the state of the program
+function update_game()
+
+    update_game_systems()
+    
+    update_game_validation()
+    
+    update_game_move()
+    
+    update_game_conditions()
+    
+end
+
+--Every frame, after the logic is processed, render to the screen
+--The current pipeline is: map, objects, animated objects, then player but 
+--a more complex pipeline would allow for objects in the foreground / allow objects & player to be placed at various depths 
+function draw_game()
+
+    clear_screen()
+
+    draw_map()
+
+    draw_ojects()
+
+    draw_animation()
+
+    draw_player()
+
+    draw_troubleshooting()
+
+end
+
+--Sets or updates foundational states and variables
 function init_game_construction()
 
+    --Set the update and draw functions to their gameplay counterparts
     _update = update_game
     _draw = draw_game
 
     --Start creating levels
-    if not level_current then --initialize level_current
+
+    --initialize level_current
+    if not level_current then 
         level_current = levels[level_initial]
     end
 
@@ -53,7 +91,8 @@ function init_game_construction()
     end
 end
 
-function init_game_cycleStart()
+--Sets or resets variables for the current run, based on the current level
+function init_game_runStart()
 
     --Clear table toAnimate
     table_toAnimate = {}
@@ -81,121 +120,19 @@ function init_game_cycleStart()
     add(table_toAnimate, key_current)
     --Give each entry in the hazards table a loop cycle variable (indicates this is an object with a simple anim, rather than a walk cycle) 
     --then add each entry in the table to the ToAnimate table
-        for index, hazard in ipairs(table_hazards) do
-            hazard.spr = {}
-            hazard.spr.size = 2
-            hazard.spr.loopCycle = sprite_hazardCycle
-            add(table_toAnimate, hazard)
-        end
-
-        --Slow player dramatically on level advance
-        char_player.vel.x = impose_global_dampen(char_player.vel.x)
-        char_player.vel.y = impose_global_dampen(char_player.vel.y)
-
-        --TP player to spawn coords
-        char_player.coords = {x = coords_spawn.x, y = coords_spawn.y}
-
-end
-
-function update_game()
-
-    update_game_systems()
-
-    update_game_validation()
-
-    update_game_move()
-
-    update_game_conditions()
-
-end
-
-function update_game_systems() --Tick, cycle, timer updates
-
-    --Iterate global tick
-    tick_update()
-
-    levelTimer_update()
-
-end
-
-function update_game_validation()
-
-        --Validate player
-        if not char_player then
-            troubleshooting("noChar", "Um, you lost your character! \n")
-        end
-
-end
-
-function update_game_move()
-
-        --Early in frame, move player
-        --then record TODO
-        move_player(char_player)
-        tempTape_write(char_player, char_player.coords.x)
-
-end
-
-
-function update_game_conditions()
-
-    --If player is in success zone, 
-    --advance level
-    if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
-
-        advance_level()
-
+    for index, hazard in ipairs(table_hazards) do
+        hazard.spr = {}
+        hazard.spr.size = 2
+        hazard.spr.loopCycle = sprite_hazardCycle
+        add(table_toAnimate, hazard)
     end
 
-    --If player picks up key, stop rendering the sprite
-    if query_doesCollide_range(char_player.coords, coords_key, range_key) then
-        char_player.hasKey = true
-        del(table_toAnimate, key_current)
-    end
+    --Slow player dramatically on level advance
+    char_player.vel.x = impose_global_dampen(char_player.vel.x)
+    char_player.vel.y = impose_global_dampen(char_player.vel.y)
 
-    --For each hazard in table: if colliding with hazard, die
-    for index, hazard in pairs(table_hazards) do
-        if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
-            die()
-        end
-    end
-
-end
-
-function draw_game()
-
-    draw_map()
-
-    if next(table_toAnimate) == nil then
-        troubleshooting("animateNil", "No objects to animate")
-    end
-
-    --Iterate through and animate each object which has an element of animation
-    for index, anim_obj in pairs(table_toAnimate) do
-        obj_animate(anim_obj)
-    end
-
-    draw_door()
-
-    draw_troubleshooting()
-
-end
-
-function draw_map()
-
-    map(coords_tileOrigin.x, coords_tileOrigin.y, 0, 0, 16, 16)
-
-end
-
-function draw_ojects()
-
-end
-
-function draw_animation()
-
-end
-
-function draw_player()
+    --TP player to spawn coords
+    char_player.coords = {x = coords_spawn.x, y = coords_spawn.y}
 
 end
 
@@ -203,15 +140,15 @@ end
 --Init Functions
 
 --A simple function for creating variables that must exist on program 
-    --start or are useful to be able to quickly tweak when developing. 
-    function initialize_variables()
-        foo = "bar"
+--start or are useful to be able to quickly tweak when developing. 
+function init_variables()
+    foo = "bar"
 
-        --This will only be the initial stats - if there's anything I want to preserve I should copy it when the program starts.
-        char_player =
-        {
-            coords = {x = 16, y = 16},
-            direction = "➡️", --For reference: ⬅️➡️⬆️⬇️
+    --This will only be the initial stats - if there's anything I want to preserve I should copy it when the program starts.
+    char_player =
+    {
+        coords = {x = 16, y = 16},
+        direction = "➡️", --For reference: ⬅️➡️⬆️⬇️
         moveSpeed = 16, --base moveSpeed, everything else will be based on this
         vel = {x = 0, y = 0},
         intended = {x = 16, y = 16},
@@ -267,6 +204,80 @@ end
     table_toAnimate = {}
 end
 
+--Like a factory, create the levels using the parameters set here. 
+--This function creates objects in the levels table using the next function, a psuedo-class.
+--This approach involves some boilerplate for readability, to account for the lack of classes in Lua. 
+function create_levels()
+    --[[level_title, seqOrder, coords_spawn, 
+    zone_success, coords_tileOrigin, coords_key, table_hazards, timer]]
+    --[[
+        I want to use the coords from the Pico-8 map editor so I have to: 
+        convert each value from map editor coords to screen space and then
+        account for offset.
+    --]]
+
+    --Returns input value from map editor coords "to Screen with Offset"
+    local function toScr_wOff(val, offset) --I've given everything clearer names for readability, but I just couldn't bear this function being so long
+        if offset == nil then 
+            offset = 0 
+        end
+        return ((val - (originOffset * offset)) * tileSize)
+    end
+    create_level
+    (
+        "level_I", --level_title
+        1, --seqOrder
+        {x = toScr_wOff(8), y = toScr_wOff(8)}, --coords_spawn
+        {corner_1 = {x = toScr_wOff(7), y = toScr_wOff(4)}, corner_2 = {x = toScr_wOff(9), y = toScr_wOff(5)}}, --zone_success
+        {x = (originOffset * 0), y = 0}, --coords_tileOrigin
+        {x = toScr_wOff(8), y = toScr_wOff(11.5)}, --coords_key
+        { --table_hazards
+            {coords = {x = toScr_wOff(6.5), y = toScr_wOff(8)}},
+            {coords = {x = toScr_wOff(9.5), y = toScr_wOff(8)}},
+        },
+        {max = 300} --levelTimer
+    )
+
+    create_level
+    (
+        "level_heart", --level_title
+        2, --seqOrder
+        {x = toScr_wOff(23.5, 1), y = toScr_wOff(10.5)}, --coords_spawn
+        {corner_1 = {x = toScr_wOff(24, 1), y = toScr_wOff(11)}, corner_2 = {x = toScr_wOff(26, 1), y = toScr_wOff(12)}}, --zone_success
+        {x = (originOffset * 1), y = 0}, --coords_tileOrigin
+        {x = toScr_wOff(26.5, 1), y = toScr_wOff(4.5)}, --coords_key
+        { --table_hazards
+            {coords = {x = toScr_wOff(24.5, 1), y = toScr_wOff(5)}},
+            {coords = {x = toScr_wOff(23, 1), y = toScr_wOff(7)}},
+            {coords = {x = toScr_wOff(26, 1), y = toScr_wOff(7)}},
+        },
+        {max = 300} --levelTimer
+    )
+
+    create_level
+    (
+        "level_u", --level_title
+        3, --seqOrder
+        {x = toScr_wOff(41, 2), y = toScr_wOff(5)}, --coords_spawn
+        {corner_1 = {x = toScr_wOff(38, 2), y = toScr_wOff(5)}, corner_2 = {x = toScr_wOff(39, 2), y = toScr_wOff(6)}}, --zone_success
+        {x = (originOffset * 2), y = 0}, --coords_tileOrigin
+        {x = toScr_wOff(39, 2), y = toScr_wOff(11)}, --coords_key
+        { --table_hazards
+            {coords = {x = toScr_wOff(40, 2), y = toScr_wOff(9)}},
+            {coords = {x = toScr_wOff(40, 2), y = toScr_wOff(7)}},
+            {coords = {x = toScr_wOff(35, 2), y = toScr_wOff(5)}},
+            {coords = {x = toScr_wOff(35, 2), y = toScr_wOff(3)}},
+            {coords = {x = toScr_wOff(45, 2), y = toScr_wOff(5)}},
+            {coords = {x = toScr_wOff(45, 2), y = toScr_wOff(3)}},
+        },
+        {max = 300} --levelTimer
+    )
+
+end
+
+--Custom psuedo class to create entries into the levels table.
+--Not confident this is the best approach, but it seems like a 
+--slightly elegant workaround for the lack of classes in Lua.
 function create_level(level_title, seqOrder, coords_spawn, 
     zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer)
 
@@ -287,75 +298,64 @@ function create_level(level_title, seqOrder, coords_spawn,
     }
 end
 
-function create_levels()
-    --[[level_title, seqOrder, coords_spawn, 
-    zone_success, coords_tileOrigin, coords_key, table_hazards, timer]]
-    --[[
-        I want to use the coords from the map editor so I have to 
-        convert each value here to screen space and account for offset.
-    --]]
+-->8
+--Update Functions
 
-    --Val "to Screen with Offset"
-    local function toScr_wOff(val, offset) --I've given everything clearer names for readability, but I just couldn't bear this function being so long
-        if offset == nil then 
-            offset = 0 
-        end
-        return ((val - (originOffset * offset)) * tileSize)
-    end
-    create_level
-    (
-        "level_I", --level_title
-        1, --seqOrder
-        {x = toScr_wOff(8), y = toScr_wOff(8)}, --coords_spawn
-        {corner_1 = {x = toScr_wOff(7), y = toScr_wOff(4)}, corner_2 = {x = toScr_wOff(9), y = toScr_wOff(5)}}, --zone_success
-        {x = (originOffset * 0), y = 0}, --coords_tileOrigin
-        {x = toScr_wOff(8), y = toScr_wOff(11.5)}, --coords_key
-        { --table_hazards
-            {coords = {x = toScr_wOff(6.5), y = toScr_wOff(8)}},
-            {coords = {x = toScr_wOff(9.5), y = toScr_wOff(8)}},
-        }, --levelTimer
-        {max = 300}
-    )
+--Update core game systems, like the gameplay tick and timer
+function update_game_systems()
 
-    create_level
-    (
-        "level_heart", --level_title
-        2, --seqOrder
-        {x = toScr_wOff(23.5, 1), y = toScr_wOff(10.5)}, --coords_spawn
-        {corner_1 = {x = toScr_wOff(24, 1), y = toScr_wOff(11)}, corner_2 = {x = toScr_wOff(26, 1), y = toScr_wOff(12)}}, --zone_success
-        {x = (originOffset * 1), y = 0}, --coords_tileOrigin
-        {x = toScr_wOff(26.5, 1), y = toScr_wOff(4.5)}, --coords_key
-        { --table_hazards
-            {coords = {x = toScr_wOff(24.5, 1), y = toScr_wOff(5)}},
-            {coords = {x = toScr_wOff(23, 1), y = toScr_wOff(7)}},
-            {coords = {x = toScr_wOff(26, 1), y = toScr_wOff(7)}},
-        }, --levelTimer
-        {max = 300}
-    )
+    --Iterate global tick
+    tick_update()
 
-    create_level
-    (
-        "level_u", --level_title
-        3, --seqOrder
-        {x = toScr_wOff(41, 2), y = toScr_wOff(5)}, --coords_spawn
-        {corner_1 = {x = toScr_wOff(38, 2), y = toScr_wOff(5)}, corner_2 = {x = toScr_wOff(39, 2), y = toScr_wOff(6)}}, --zone_success
-        {x = (originOffset * 2), y = 0}, --coords_tileOrigin
-        {x = toScr_wOff(39, 2), y = toScr_wOff(11)}, --coords_key
-        { --table_hazards
-            {coords = {x = toScr_wOff(40, 2), y = toScr_wOff(9)}},
-            {coords = {x = toScr_wOff(40, 2), y = toScr_wOff(7)}},
-            {coords = {x = toScr_wOff(35, 2), y = toScr_wOff(5)}},
-            {coords = {x = toScr_wOff(35, 2), y = toScr_wOff(3)}},
-            {coords = {x = toScr_wOff(45, 2), y = toScr_wOff(5)}},
-            {coords = {x = toScr_wOff(45, 2), y = toScr_wOff(3)}},
-        }, --levelTimer
-        {max = 300}
-    )
+    levelTimer_update()
 
 end
 
--->8
---Update Functions
+--Validate any variables/objects
+function update_game_validation()
+
+        --Validate player
+        if not char_player then
+            troubleshooting("noChar", "Um, you lost your character! \n")
+        end
+
+end
+
+--Update movement logic
+function update_game_move()
+
+        --Early in frame, move player
+        --then record TODO
+        move_player(char_player)
+        tempTape_write(char_player, char_player.coords.x)
+
+end
+
+--Check for success/fail conditions, like succeeding or failing
+function update_game_conditions()
+
+    --If player is in success zone, 
+    --advance level
+    if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
+
+        advance_level()
+
+    end
+
+    --If player picks up key, stop rendering the sprite
+    if query_doesCollide_range(char_player.coords, coords_key, range_key) then
+        char_player.hasKey = true
+        del(table_toAnimate, key_current)
+    end
+
+    --For each hazard in table: if colliding with hazard, die
+    for index, hazard in pairs(table_hazards) do
+        if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
+            die()
+        end
+    end
+
+end
 
 --Find players new x, y coords by maintaining velocity
 function move_player(player)
@@ -593,6 +593,39 @@ end
 -->8
 --Draw Functions
 
+--Render the game world, presumeably before (under) other objects
+function draw_map()
+
+    map(coords_tileOrigin.x, coords_tileOrigin.y, 0, 0, 16, 16)
+
+end
+
+--Render objects which are imposed on the map
+function draw_ojects()
+
+    draw_door()
+
+end
+
+--Render animated objects
+function draw_animation()
+
+    if next(table_toAnimate) == nil then
+        troubleshooting("animateNil", "No objects to animate")
+    end
+
+    --Iterate through and animate each object which has an element of animation
+    for index, anim_obj in pairs(table_toAnimate) do
+        obj_animate(anim_obj)
+    end
+
+end
+
+--Render the player
+function draw_player()
+
+end
+
 function clear_screen()
 
     cls(2)
@@ -670,6 +703,9 @@ function draw_player()
 
 end
 
+-->8
+--Utility Functions
+
 --Often my working numbers are higher values for more precision, so I need to 
 --convert them to a value more appropriate for pixels/every frame calculation
 function impose_global_dampen(val)
@@ -680,9 +716,6 @@ function impose_global_dampen(val)
         return
     end
 end
-
--->8
---Utility Functions
 
 --Troubleshooting function which is as simple as possible; 
 --Each message gets an ID so it doesn't get duplicated, then all messages from start of runtime
