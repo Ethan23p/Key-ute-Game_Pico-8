@@ -325,36 +325,36 @@ end
 function update_game_move()
 
         --Early in frame, move player
-        --then record TODO
+        --then record
         move_player(char_player)
         tempTape_write(char_player, char_player.coords.x)
 
 end
 
---Check for success/fail conditions, like succeeding or failing
+--Check for success/fail conditions, like completing the level or dying by hazards
 function update_game_conditions()
 
-    --If player is in success zone, 
-    --advance level
+    --If player is in success zone, advance level
     if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
 
         advance_level()
 
     end
 
-    --If player picks up key, stop rendering the sprite
+    --If player picks up key, set "player has key" and stop rendering the sprite
     if query_doesCollide_range(char_player.coords, coords_key, range_key) then
         char_player.hasKey = true
         del(table_toAnimate, key_current)
     end
 
-    --For each hazard in table: if colliding with hazard, die
+    --For each hazard in hazard table: if colliding with hazard, die
     for index, hazard in pairs(table_hazards) do
         if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
             die()
         end
     end
 
+    --Need to add logic and rendering for message level.
 end
 
 --Find players new x, y coords by maintaining velocity
@@ -394,8 +394,8 @@ function move_player(player)
     --Find intended x,y coords
     player.intended.x = player.coords.x + (impose_global_dampen(player.vel.x))
     player.intended.y = player.coords.y + (impose_global_dampen(player.vel.y))
-    --Check collision on each axis
-    --If there is collision on an axis, set the intended location back to the current one
+    --Check collision on each axis.
+    --If there is collision on an axis, reverse movement and greatly reduce velocity on that axis. 
     if not query_canMove(player.intended.x, player.coords.y, player.width, player.height) then
         --troubleshooting("Xsolid", "Solid X: "..player.intended.x..", "..player.coords.y)
         player.vel.x *= -.5
@@ -407,7 +407,7 @@ function move_player(player)
         player.intended.y = player.coords.y + (impose_global_dampen(player.vel.y))
     end
 
-    --Compare player's intended x to their current x, if negative they are facing left, else right
+    --Compare player's intended x to their current x, if negative they are facing left, else right.
     --For reference: ⬅️➡️⬆️⬇️
     if (player.intended.x - player.coords.x) < 0 then
         player.direction = "⬅️"
@@ -431,21 +431,25 @@ function tick_update()
 
 end
 
---Function intentially uses reference of current level's timer
---Level timer ticks down and provides framework for the timer visual.
---TODO Need to implement a timer visual
+--Level timer ticks down, ends run on depletion, and provides framework for the timer visual.
+--Need to implement a timer visual, TODO
 function levelTimer_update()
 
+    --Intentially uses reference of current level's timer so that then
+    --timer can be preserved per level; only timer max is constant.
     local timer = level_current.levelTimer
 
+    --Validate timer_current.
     if not timer.current then
         timer.current = timer.max
     end
 
+    --Decrement timer.
     timer.current -= 1
 
+    --When timer reaches 0, end the run.
     if timer.current < 0 then
-        troubleshooting("levelTimer", "Too slow")
+        troubleshooting("levelTimer", "Too slow") --TS, will remove later.
         die()
     end
 
@@ -453,15 +457,21 @@ end
 
 function levelTimer_reset()
 
-    level_current.levelTimer_current = level_current.levelTimer_max
+    --Reset the current level timer.
+    level_current.levelTimer.current = level_current.levelTimer_max
 
 end
 
-function advance_level()
+function advance_level() --If I'm reading this correctly, this approach is probably wrong. 
 
+    --Finds the next level according to seqOrder.
     local seqOrder_next = level_current.seqOrder + 1
+    
+    --For input level, find the next level according to seqOrder
+    --and set it as the current level
     local function query_isNextLevel(level)
-        if level.seqOrder == seqOrder_next then
+        
+        if level.seqOrder == seqOrder_next then --Not sure why it directly sets it during the iteration, probably should store result in local variable. TODO
             level_current = level
         end
     end
@@ -478,8 +488,12 @@ function advance_level()
 
 end
 
+--End current run, agnostic of whether it was a success or failure.
 function die()
+
     levelTimer_reset()
+
+    --Because init_game references live variables, calling it will always reset the gamestate according to the set current level.
     init_game()
 
 end
@@ -493,16 +507,15 @@ function query_canMove(x, y, obj_width, obj_height)
     offset_width = (((obj_width + 1) - .5) / 2) --Add 1 because pixel counts are 0 indexed, subtract a bit for gamefeel, divide by two for centering
     offset_height = (((obj_height + 1) - .5) / 2)
 
-    local edges = {}
-
     --Add the outer points of  a cross to an array
+    local edges = {}
     add(edges, {x - offset_width, y})
     add(edges, {x + offset_width, y})
     add(edges, {x, y - offset_height})
     add(edges, {x, y + offset_height})
 
     --If any point returns solid, return false immediately
-    --Note to self, I could use the Pico-8 foreach function here
+    --Note to self, I could use the Pico-8 foreach function here --From future self; not sure if I could, I like that it immediately exits upon failure.
     for i=1, #edges do
         if query_flagType(edges[i], spriteFlag_solid) then
             --troubleshooting("solid", "Solid...SOLID "..x..", "..y)
@@ -586,12 +599,20 @@ function tape_record(obj)
     end
 end
 
+--TODO
 function tape_play(obj)
 
 end
 
 -->8
 --Draw Functions
+
+--You wouldn't believe it, this function clears the screen.
+function clear_screen()
+
+    cls(2)
+
+end
 
 --Render the game world, presumeably before (under) other objects
 function draw_map()
@@ -610,6 +631,7 @@ end
 --Render animated objects
 function draw_animation()
 
+    --If there is no entries in table_toAnimate, send error. (Assumes that there is always at least one object to animate)
     if next(table_toAnimate) == nil then
         troubleshooting("animateNil", "No objects to animate")
     end
@@ -622,16 +644,12 @@ function draw_animation()
 end
 
 --Render the player
+--Currently player is drawm in "draw_animation" function, should move logic here TODO
 function draw_player()
 
 end
 
-function clear_screen()
-
-    cls(2)
-
-end
-
+--Animate object depending on what type of animation it requires, then render the current animation frame.
 function obj_animate(obj)
 
     if not obj.spr.animTick then
@@ -679,7 +697,8 @@ function obj_animate(obj)
 
         end
 
-    else
+    --If invalid object is put in table, send error.
+    else 
         troubleshooting("objAnimateNil", "obj_animate called with incompat obj")
         --return
     end
@@ -688,18 +707,13 @@ function obj_animate(obj)
 
 end
 
+--Render door according to success zone, allowing for rendering not aligned to the sprite grid.
 function draw_door()
 
     local door_x = ((level_current.zone_success.corner_1.x + level_current.zone_success.corner_2.x) / 2) - (tileSize / 2)
     local door_y = ((level_current.zone_success.corner_1.y + level_current.zone_success.corner_2.y) / 2) - (tileSize / 2)
 
     spr(26, door_x, door_y)
-
-end
-
-function draw_player()
-
-    spr(52, char_player.coords.x, char_player.coords.y)
 
 end
 
@@ -788,6 +802,7 @@ function query_doesCollide_zone(obj, zone)
     end
 end
 
+--Simple function for checking, direction facing is determined in movement code.
 function query_isFacingLeft(obj)
     if obj.direction == "⬅️" then 
         return true
@@ -795,6 +810,7 @@ function query_isFacingLeft(obj)
         return false
     end
 end
+
 __gfx__
 0000000077f7567f567f77f7756f756f555555555d666666ddddddddbbc3333cdddd65dd55555555777777770000000000000000000000000000000000000000
 000000007777567f567f77f775677567500000555d666666dccccccdbc333bbcdddd65ddd66666657f7777770000000000000000000000000000000000000000
