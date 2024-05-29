@@ -354,7 +354,7 @@ function update_game_conditions()
         end
     end
 
-    --Need to add logic and rendering for message level.
+    --Need to add logic and rendering for "message" level. TODO
 end
 
 --Find players new x, y coords by maintaining velocity
