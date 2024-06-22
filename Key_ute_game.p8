@@ -199,6 +199,7 @@ function init_variables()
 
     level_initial = "level_I"--"level_heart"--
     levels = {}
+    levelsSeq = {}
     create_levels()
 
     table_toAnimate = {}
@@ -272,6 +273,12 @@ function create_levels()
         },
         {max = 300} --levelTimer
     )
+
+    --Add references to the levels indexed by their sequential order. Admittedly, this is evidence of my neuroticism as I could have simply indexed the levels with their place in the sequence, but I wanted to allow each level a title and be flexible to clumsy, on the fly addition of new levels. 
+    foreach(levels, sequence_level())
+        local function sequence_level(level)
+            add(levelsSeq, level, level.seqOrder)
+        end
 
 end
 
@@ -488,6 +495,26 @@ function advance_level() --If I'm reading this correctly, this approach is proba
 
 end
 
+--Advance by finding the next level, according to seqOrder, setting that as the current level, and ending the current run.  
+function advance_level2()
+
+    local seqOrder_next = level_current.seqOrder + 1
+
+    if levelsSeq[seqOrder_next] then
+        level_current = levelsSeq[seqOrder_next]
+    elseif seqOrder_next > (#levelsSeq - 1) then
+        troubleshooting("weiner", "You r the weiner!")
+        init_game_levelMessage()
+    else
+        troubleshooting("advanceLevel", "Incompat next level")
+    end
+
+    tape_record(char_player)
+
+    die()
+
+end
+
 --End current run, agnostic of whether it was a success or failure.
 function die()
 
@@ -601,6 +628,12 @@ end
 
 --TODO
 function tape_play(obj)
+
+end
+
+function init_game_levelMessage()
+
+
 
 end
 
