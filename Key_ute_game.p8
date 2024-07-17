@@ -6,19 +6,142 @@ __lua__
 -- for Cassie ♥
 
 -->8
---Construction Functions
+--Flow Functions - init, update, draw
 
+--Initial function that is called when the program starts
 function _init()
 
-    initialize_variables()
+    init_variables()
 
-    init_gameplay()
+    init_game()
 
 end
 
+--Sets or updates foundational and level-specific states and variables
+function init_game()
+
+    init_game_construction()
+
+    init_game_runStart()
+
+end
+
+--Every frame, update the state of the program
+function update_game()
+
+    update_game_systems()
+    
+    update_game_validation()
+    
+    update_game_move()
+    
+    update_game_conditions()
+    
+end
+
+--Every frame, after the logic is processed, render to the screen
+--The current pipeline is: map, objects, animated objects, then player but 
+--a more complex pipeline would allow for objects in the foreground / allow objects & player to be placed at various depths 
+function draw_game()
+
+    clear_screen()
+
+    draw_map()
+
+    draw_ojects()
+
+    draw_animation()
+
+    draw_player()
+
+    draw_troubleshooting()
+
+end
+
+--Sets or updates foundational states and variables
+function init_game_construction()
+
+    --Set the update and draw functions to their gameplay counterparts
+    _update = update_game
+    _draw = draw_game
+
+    --Start creating levels
+
+    --initialize level_current
+    if not level_current then 
+        level_current = levels[level_initial]
+    end
+
+    --Set current conditions based on the current level's parameters
+    coords_spawn = level_current.coords_spawn
+    zone_success = level_current.zone_success
+    coords_tileOrigin = level_current.coords_tileOrigin
+    coords_key = level_current.coords_key
+    table_hazards = level_current.table_hazards
+
+    --Validate level parameters
+    if coords_spawn == nil 
+    or zone_success == nil 
+    or coords_tileOrigin == nil 
+    or coords_key == nil 
+    or table_hazards == nil
+    then
+        troubleshooting("levelParams","Hey, setting the level params doesn't work! \n")
+        return
+    end
+end
+
+--Sets or resets variables for the current run, based on the current level
+function init_game_runStart()
+
+    --Clear table toAnimate
+    table_toAnimate = {}
+
+    --Clear temporary tape
+    tempTape_clear(char_player)
+
+    --Reset key progress
+    char_player.hasKey = false
+
+    --Add the player to the ToAnimate table
+    add(table_toAnimate, char_player)
+
+    key_current = 
+    {
+        coords = coords_key,
+        spr = 
+        {
+            current = 25,
+            size = 1,
+            hoverCycle = hoverCycle,
+        }
+    }
+    --Add the key to the ToAnimate table
+    add(table_toAnimate, key_current)
+    --Give each entry in the hazards table a loop cycle variable (indicates this is an object with a simple anim, rather than a walk cycle) 
+    --then add each entry in the table to the ToAnimate table
+    for index, hazard in ipairs(table_hazards) do
+        hazard.spr = {}
+        hazard.spr.size = 2
+        hazard.spr.loopCycle = sprite_hazardCycle
+        add(table_toAnimate, hazard)
+    end
+
+    --Slow player dramatically on level advance
+    char_player.vel.x = impose_global_dampen(char_player.vel.x)
+    char_player.vel.y = impose_global_dampen(char_player.vel.y)
+
+    --TP player to spawn coords
+    char_player.coords = {x = coords_spawn.x, y = coords_spawn.y}
+
+end
+
+-->8
+--Init Functions
+
 --A simple function for creating variables that must exist on program 
 --start or are useful to be able to quickly tweak when developing. 
-function initialize_variables()
+function init_variables()
     foo = "bar"
 
     --This will only be the initial stats - if there's anything I want to preserve I should copy it when the program starts.
@@ -73,90 +196,95 @@ function initialize_variables()
         64, 66, 66, 66, 66, 66, 66, 66, --Rest State 2, settles then rests
         68, 70, 72, 68, 70, 72, --Spinning State 2, identical to first
     }
-    
+
     level_initial = "level_I"--"level_heart"--
     levels = {}
+    levelsSeq = {}
     create_levels()
 
     table_toAnimate = {}
+end
+
+--Like a factory, create the levels using the parameters set here. 
+--This function creates objects in the levels table using the next function, a psuedo-class.
+--This approach involves some boilerplate for readability, to account for the lack of classes in Lua. 
+function create_levels()
+    --[[level_title, seqOrder, coords_spawn, 
+    zone_success, coords_tileOrigin, coords_key, table_hazards, timer]]
+    --[[
+        I want to use the coords from the Pico-8 map editor so I have to: 
+        convert each value from map editor coords to screen space and then
+        account for offset.
+    --]]
+
+    --Returns input value from map editor coords "to Screen with Offset"
+    local function toScr_wOff(val, offset) --I've given everything clearer names for readability, but I just couldn't bear this function being so long
+        if offset == nil then 
+            offset = 0 
+        end
+        return ((val - (originOffset * offset)) * tileSize)
+    end
+    create_level
+    (
+        "level_I", --level_title
+        1, --seqOrder
+        {x = toScr_wOff(8), y = toScr_wOff(8)}, --coords_spawn
+        {corner_1 = {x = toScr_wOff(7), y = toScr_wOff(4)}, corner_2 = {x = toScr_wOff(9), y = toScr_wOff(5)}}, --zone_success
+        {x = (originOffset * 0), y = 0}, --coords_tileOrigin
+        {x = toScr_wOff(8), y = toScr_wOff(11.5)}, --coords_key
+        { --table_hazards
+            {coords = {x = toScr_wOff(6.5), y = toScr_wOff(8)}},
+            {coords = {x = toScr_wOff(9.5), y = toScr_wOff(8)}},
+        },
+        {max = 300} --levelTimer
+    )
+
+    create_level
+    (
+        "level_heart", --level_title
+        2, --seqOrder
+        {x = toScr_wOff(23.5, 1), y = toScr_wOff(10.5)}, --coords_spawn
+        {corner_1 = {x = toScr_wOff(24, 1), y = toScr_wOff(11)}, corner_2 = {x = toScr_wOff(26, 1), y = toScr_wOff(12)}}, --zone_success
+        {x = (originOffset * 1), y = 0}, --coords_tileOrigin
+        {x = toScr_wOff(26.5, 1), y = toScr_wOff(4.5)}, --coords_key
+        { --table_hazards
+            {coords = {x = toScr_wOff(24.5, 1), y = toScr_wOff(5)}},
+            {coords = {x = toScr_wOff(23, 1), y = toScr_wOff(7)}},
+            {coords = {x = toScr_wOff(26, 1), y = toScr_wOff(7)}},
+        },
+        {max = 300} --levelTimer
+    )
+
+    create_level
+    (
+        "level_u", --level_title
+        3, --seqOrder
+        {x = toScr_wOff(41, 2), y = toScr_wOff(5)}, --coords_spawn
+        {corner_1 = {x = toScr_wOff(38, 2), y = toScr_wOff(5)}, corner_2 = {x = toScr_wOff(39, 2), y = toScr_wOff(6)}}, --zone_success
+        {x = (originOffset * 2), y = 0}, --coords_tileOrigin
+        {x = toScr_wOff(39, 2), y = toScr_wOff(11)}, --coords_key
+        { --table_hazards
+            {coords = {x = toScr_wOff(40, 2), y = toScr_wOff(9)}},
+            {coords = {x = toScr_wOff(40, 2), y = toScr_wOff(7)}},
+            {coords = {x = toScr_wOff(35, 2), y = toScr_wOff(5)}},
+            {coords = {x = toScr_wOff(35, 2), y = toScr_wOff(3)}},
+            {coords = {x = toScr_wOff(45, 2), y = toScr_wOff(5)}},
+            {coords = {x = toScr_wOff(45, 2), y = toScr_wOff(3)}},
+        },
+        {max = 300} --levelTimer
+    )
+
+    --Add references to the levels indexed by their sequential order. Admittedly, this is evidence of my neuroticism as I could have simply indexed the levels with their place in the sequence, but I wanted to allow each level a title and be flexible to clumsy, on the fly addition of new levels. 
+    foreach(levels, sequence_level())
+        local function sequence_level(level)
+            add(levelsSeq, level, level.seqOrder)
+        end
 
 end
 
-function init_gameplay()
-
-    --Construction events
-    --
-    _update = update_gameplay
-    _draw = draw_gameplay
-
-    --Start creating levels
-    if not level_current then --initialize level_current
-        level_current = levels[level_initial]
-    end
-
-    --Set current conditions based on the current level's parameters
-    coords_spawn = level_current.coords_spawn
-    zone_success = level_current.zone_success
-    coords_tileOrigin = level_current.coords_tileOrigin
-    coords_key = level_current.coords_key
-    table_hazards = level_current.table_hazards
-    
-    --Validate level parameters
-    if coords_spawn == nil 
-    or zone_success == nil 
-    or coords_tileOrigin == nil 
-    or coords_key == nil 
-    or table_hazards == nil
-    then
-        troubleshooting("levelParams","Hey, setting the level params doesn't work! \n")
-        return
-    end
-
-    --Game Cycle Start Events
-    --
-
-    --Clear table toAnimate
-    table_toAnimate = {}
-
-    --Clear temporary tape
-    tempTape.clear(char_player)
-
-    --Reset key progress
-    char_player.hasKey = false
-
-    --Add the player to the ToAnimate table
-    add(table_toAnimate, char_player)
-    
-    key_current = 
-    {
-        coords = coords_key,
-        spr = 
-        {
-            current = 25,
-            size = 1,
-            hoverCycle = hoverCycle,
-        }
-    }
-    --Add the key to the ToAnimate table
-    add(table_toAnimate, key_current)
-    --Give each entry in the hazards table a loop cycle variable (indicates this is an object with a simple anim, rather than a walk cycle) 
-    --then add each entry in the table to the ToAnimate table
-    for index, hazard in ipairs(table_hazards) do
-        hazard.spr = {}
-        hazard.spr.size = 2
-        hazard.spr.loopCycle = sprite_hazardCycle
-        add(table_toAnimate, hazard)
-    end
-
-    --Slow player dramatically on level advance
-    char_player.vel.x = impose_global_dampen(char_player.vel.x)
-    char_player.vel.y = impose_global_dampen(char_player.vel.y)
-
-    --TP player to spawn coords
-    char_player.coords = {x = coords_spawn.x, y = coords_spawn.y}
-
-end
-
+--Custom psuedo class to create entries into the levels table.
+--Not confident this is the best approach, but it seems like a 
+--slightly elegant workaround for the lack of classes in Lua.
 function create_level(level_title, seqOrder, coords_spawn, 
     zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer)
 
@@ -177,72 +305,453 @@ function create_level(level_title, seqOrder, coords_spawn,
     }
 end
 
-function create_levels()
-    --[[level_title, seqOrder, coords_spawn, 
-    zone_success, coords_tileOrigin, coords_key, table_hazards, timer]]
-    --[[
-        I want to use the coords from the map editor so I have to 
-        convert each value here to screen space and account for offset.
-    --]]
+-->8
+--Update Functions
 
-    --Val "to Screen with Offset"
-    local function toScr_wOff(val, offset) --I've given everything clearer names for readability, but I just couldn't bear this function being so long
-        if offset == nil then 
-            offset = 0 
-        end
-        return ((val - (originOffset * offset)) * tileSize)
-    end
-    create_level
-    (
-        "level_I", --level_title
-        1, --seqOrder
-        {x = toScr_wOff(8), y = toScr_wOff(8)}, --coords_spawn
-        {corner_1 = {x = toScr_wOff(7), y = toScr_wOff(4)}, corner_2 = {x = toScr_wOff(9), y = toScr_wOff(5)}}, --zone_success
-        {x = (originOffset * 0), y = 0}, --coords_tileOrigin
-        {x = toScr_wOff(8), y = toScr_wOff(11.5)}, --coords_key
-        { --table_hazards
-            {coords = {x = toScr_wOff(6.5), y = toScr_wOff(8)}},
-            {coords = {x = toScr_wOff(9.5), y = toScr_wOff(8)}},
-        }, --levelTimer
-        {max = 300}
-    )
+--Update core game systems, like the gameplay tick and timer
+function update_game_systems()
 
-    create_level
-    (
-        "level_heart", --level_title
-        2, --seqOrder
-        {x = toScr_wOff(23.5, 1), y = toScr_wOff(10.5)}, --coords_spawn
-        {corner_1 = {x = toScr_wOff(24, 1), y = toScr_wOff(11)}, corner_2 = {x = toScr_wOff(26, 1), y = toScr_wOff(12)}}, --zone_success
-        {x = (originOffset * 1), y = 0}, --coords_tileOrigin
-        {x = toScr_wOff(26.5, 1), y = toScr_wOff(4.5)}, --coords_key
-        { --table_hazards
-            {coords = {x = toScr_wOff(24.5, 1), y = toScr_wOff(5)}},
-            {coords = {x = toScr_wOff(23, 1), y = toScr_wOff(7)}},
-            {coords = {x = toScr_wOff(26, 1), y = toScr_wOff(7)}},
-        }, --levelTimer
-        {max = 300}
-    )
+    --Iterate global tick
+    tick_update()
 
-    create_level
-    (
-        "level_u", --level_title
-        3, --seqOrder
-        {x = toScr_wOff(41, 2), y = toScr_wOff(5)}, --coords_spawn
-        {corner_1 = {x = toScr_wOff(38, 2), y = toScr_wOff(5)}, corner_2 = {x = toScr_wOff(39, 2), y = toScr_wOff(6)}}, --zone_success
-        {x = (originOffset * 2), y = 0}, --coords_tileOrigin
-        {x = toScr_wOff(39, 2), y = toScr_wOff(11)}, --coords_key
-        { --table_hazards
-            {coords = {x = toScr_wOff(40, 2), y = toScr_wOff(9)}},
-            {coords = {x = toScr_wOff(40, 2), y = toScr_wOff(7)}},
-            {coords = {x = toScr_wOff(35, 2), y = toScr_wOff(5)}},
-            {coords = {x = toScr_wOff(35, 2), y = toScr_wOff(3)}},
-            {coords = {x = toScr_wOff(45, 2), y = toScr_wOff(5)}},
-            {coords = {x = toScr_wOff(45, 2), y = toScr_wOff(3)}},
-        }, --levelTimer
-        {max = 300}
-    )
+    levelTimer_update()
 
 end
+
+--Validate any variables/objects
+function update_game_validation()
+
+        --Validate player
+        if not char_player then
+            troubleshooting("noChar", "Um, you lost your character! \n")
+        end
+
+end
+
+--Update movement logic
+function update_game_move()
+
+        --Early in frame, move player
+        --then record
+        move_player(char_player)
+        tempTape_write(char_player, char_player.coords.x)
+
+end
+
+--Check for success/fail conditions, like completing the level or dying by hazards
+function update_game_conditions()
+
+    --If player is in success zone, advance level
+    if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
+
+        advance_level()
+
+    end
+
+    --If player picks up key, set "player has key" and stop rendering the sprite
+    if query_doesCollide_range(char_player.coords, coords_key, range_key) then
+        char_player.hasKey = true
+        del(table_toAnimate, key_current)
+    end
+
+    --For each hazard in hazard table: if colliding with hazard, die
+    for index, hazard in pairs(table_hazards) do
+        if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
+            die()
+        end
+    end
+
+    --Need to add logic and rendering for "message" level. TODO
+end
+
+--Find players new x, y coords by maintaining velocity
+function move_player(player)
+
+    --(btn(x,y)) 
+    --x=0, 1 means left, right 
+    --x=2,3 means up, down
+    --y=0 means player control scheme 1, y=1 means player control scheme 2 (I have both set up to control main character so user can choose)
+    --
+    --While player presses any button, continuously add velocity to relevant direction
+    --(This is a tidy little module to reduce code repetition)
+    local function impetus(vel, pole)
+        return vel + (player.moveSpeed * pole)
+    end
+    if (btn(0,0) or btn(0,1)) player.vel.x = impetus(player.vel.x, -1)
+    if (btn(1,0) or btn(1,1)) player.vel.x = impetus(player.vel.x, 1)
+    if (btn(2,0) or btn(2,1)) player.vel.y = impetus(player.vel.y, -1)
+    if (btn(3,0) or btn(3,1)) player.vel.y = impetus(player.vel.y, 1)
+
+    --Impose limits of drag and maximum movespeed 
+    --(sidenote, I suppose movespeed max could be derived from gravity/drag affecting base movespeed)
+    local function player_imposeLimits(vel, moveSpeed)
+        local moveSpeedMax = moveSpeed * global_moveSpeedMax
+        return mid(-moveSpeedMax, (vel * global_physicsDrag), moveSpeedMax)
+    end
+    player.vel.x = player_imposeLimits(player.vel.x, player.moveSpeed)
+    player.vel.y = player_imposeLimits(player.vel.y, player.moveSpeed)
+
+    if query_shouldHalt(player.vel.x, player.moveSpeed) then
+        player.vel.x = 0
+    end
+    if query_shouldHalt(player.vel.y, player.moveSpeed) then
+        player.vel.y = 0
+    end
+
+    --Find intended x,y coords
+    player.intended.x = player.coords.x + (impose_global_dampen(player.vel.x))
+    player.intended.y = player.coords.y + (impose_global_dampen(player.vel.y))
+    --Check collision on each axis.
+    --If there is collision on an axis, reverse movement and greatly reduce velocity on that axis. 
+    if not query_canMove(player.intended.x, player.coords.y, player.width, player.height) then
+        --troubleshooting("Xsolid", "Solid X: "..player.intended.x..", "..player.coords.y)
+        player.vel.x *= -.5
+        player.intended.x = player.coords.x + (impose_global_dampen(player.vel.x))
+    end
+    if not query_canMove(player.coords.x, player.intended.y, player.width, player.height) then
+        --troubleshooting("Ysolid", "Solid Y: "..player.coords.x..", "..player.intended.y)
+        player.vel.y *= -.5
+        player.intended.y = player.coords.y + (impose_global_dampen(player.vel.y))
+    end
+
+    --Compare player's intended x to their current x, if negative they are facing left, else right.
+    --For reference: ⬅️➡️⬆️⬇️
+    if (player.intended.x - player.coords.x) < 0 then
+        player.direction = "⬅️"
+    else
+        player.direction = "➡️"
+    end
+
+    --Simply set player coords to the intended coords
+    player.coords.x = player.intended.x
+    player.coords.y = player.intended.y
+
+end
+
+function tick_update()
+
+        --Once each cycle, increment global_tick until it is reset after 64
+        if global_tick > 64 then
+            global_tick = 0
+        end
+        global_tick += 1
+
+end
+
+--Level timer ticks down, ends run on depletion, and provides framework for the timer visual.
+--Need to implement a timer visual, TODO
+function levelTimer_update()
+
+    --Intentially uses reference of current level's timer so that then
+    --timer can be preserved per level; only timer max is constant.
+    local timer = level_current.levelTimer
+
+    --Validate timer_current.
+    if not timer.current then
+        timer.current = timer.max
+    end
+
+    --Decrement timer.
+    timer.current -= 1
+
+    --When timer reaches 0, end the run.
+    if timer.current < 0 then
+        troubleshooting("levelTimer", "Too slow") --TS, will remove later.
+        die()
+    end
+
+end
+
+function levelTimer_reset()
+
+    --Reset the current level timer.
+    level_current.levelTimer.current = level_current.levelTimer_max
+
+end
+
+function advance_level() --If I'm reading this correctly, this approach is probably wrong. 
+
+    --Finds the next level according to seqOrder.
+    local seqOrder_next = level_current.seqOrder + 1
+    
+    --For input level, find the next level according to seqOrder
+    --and set it as the current level
+    local function query_isNextLevel(level)
+        
+        if level.seqOrder == seqOrder_next then --Not sure why it directly sets it during the iteration, probably should store result in local variable. TODO
+            level_current = level
+        end
+    end
+
+    if seqOrder_next > #levels then
+        troubleshooting("weiner", "You r the weiner!")
+    else
+        foreach(levels, query_isNextLevel())
+    end
+
+    tape_record(char_player)
+
+    die()
+
+end
+
+--Advance by finding the next level, according to seqOrder, setting that as the current level, and ending the current run.  
+function advance_level2()
+
+    local seqOrder_next = level_current.seqOrder + 1
+
+    if levelsSeq[seqOrder_next] then
+        level_current = levelsSeq[seqOrder_next]
+    elseif seqOrder_next > (#levelsSeq - 1) then
+        troubleshooting("weiner", "You r the weiner!")
+        init_game_levelMessage()
+    else
+        troubleshooting("advanceLevel", "Incompat next level")
+    end
+
+    tape_record(char_player)
+
+    die()
+
+end
+
+--End current run, agnostic of whether it was a success or failure.
+function die()
+
+    levelTimer_reset()
+
+    --Because init_game references live variables, calling it will always reset the gamestate according to the set current level.
+    init_game()
+
+end
+
+--Checks if an object's bounds touch a map tile with a given sprite flag
+--limited to only "is solid?" but I could modify
+function query_canMove(x, y, obj_width, obj_height)
+
+    --I'm collision checking the outer points of a cross centered in the sprite, 
+    --rather than the center or corners
+    offset_width = (((obj_width + 1) - .5) / 2) --Add 1 because pixel counts are 0 indexed, subtract a bit for gamefeel, divide by two for centering
+    offset_height = (((obj_height + 1) - .5) / 2)
+
+    --Add the outer points of  a cross to an array
+    local edges = {}
+    add(edges, {x - offset_width, y})
+    add(edges, {x + offset_width, y})
+    add(edges, {x, y - offset_height})
+    add(edges, {x, y + offset_height})
+
+    --If any point returns solid, return false immediately
+    --Note to self, I could use the Pico-8 foreach function here --From future self; not sure if I could, I like that it immediately exits upon failure.
+    for i=1, #edges do
+        if query_flagType(edges[i], spriteFlag_solid) then
+            --troubleshooting("solid", "Solid...SOLID "..x..", "..y)
+            return false
+        end
+    end
+    --troubleshooting("solid", "Clear "..x..", "..y)
+    return true
+
+end
+
+--Checks a given x,y coords for a specific flag
+function query_flagType(coords_input, flagType)
+
+    --Had a more complicated use-case in mind, so this function can handle multiple flags of interest
+    spriteFlags_ofInterest = {flagType}
+
+    --Convert from screen coords to map coords, taking into consideration tile offset
+    map_x = flr((coords_input[1] / tileSize) + level_current.coords_tileOrigin.x)
+    map_y = flr((coords_input[2] / tileSize) + level_current.coords_tileOrigin.y)
+
+    --Get sprite address
+    local sprite_address = mget(map_x, map_y)
+    -- Get the flag(s) associated with the sprite
+    local spriteFlags = fget(sprite_address)
+
+    -- Check for flag type of interest based on spriteFlags
+    for key, flag in ipairs(spriteFlags_ofInterest) do
+        if (spriteFlags & 2^flag) > 0 then
+            return true
+        end
+    end
+
+    -- Return false if spriteAddress is not of given flag type
+    return false
+end
+
+--Clear tempTape simply; I just want to be explicit for clarity
+function tempTape_clear(obj)
+
+    if not tempTape then
+        tempTape = {}
+    end
+
+    tempTape[obj] = {}
+
+end
+
+--Add a single entry to tempTape
+function tempTape_write(obj)
+
+    add(tempTape[obj], {obj.coords.x, obj.coords.y, obj.direction, level_current})
+
+end
+
+--Once the tempTape is finalized, record it to the final tape
+function tape_record(obj)
+
+    --Validate tempTape
+    if not tempTape[obj] then
+        troubleshooting("recordNil", "No tempTape to record")
+    end
+
+    if not finalTape then
+        finalTape = {}
+    end
+
+    --Final tape is a continuously constructed table
+    --When tempTape is finalized, append each entry in tempTape to finalTape
+    for index, entry in ipairs(tempTape[obj]) do
+        add
+        (
+            finalTape, 
+            {
+                entry.x,
+                entry.y,
+                entry.direction,
+                entry.level
+            }
+        )
+    end
+end
+
+--TODO
+function tape_play(obj)
+
+end
+
+function init_game_levelMessage()
+
+
+
+end
+
+-->8
+--Draw Functions
+
+--You wouldn't believe it, this function clears the screen.
+function clear_screen()
+
+    cls(2)
+
+end
+
+--Render the game world, presumeably before (under) other objects
+function draw_map()
+
+    map(coords_tileOrigin.x, coords_tileOrigin.y, 0, 0, 16, 16)
+
+end
+
+--Render objects which are imposed on the map
+function draw_ojects()
+
+    draw_door()
+
+end
+
+--Render animated objects
+function draw_animation()
+
+    --If there is no entries in table_toAnimate, send error. (Assumes that there is always at least one object to animate)
+    if next(table_toAnimate) == nil then
+        troubleshooting("animateNil", "No objects to animate")
+    end
+
+    --Iterate through and animate each object which has an element of animation
+    for index, anim_obj in pairs(table_toAnimate) do
+        obj_animate(anim_obj)
+    end
+
+end
+
+--Render the player
+--Currently player is drawm in "draw_animation" function, should move logic here TODO
+function draw_player()
+
+end
+
+--Animate object depending on what type of animation it requires, then render the current animation frame.
+function obj_animate(obj)
+
+    if not obj.spr.animTick then
+        obj.spr.animTick = 1
+    end
+
+    if obj.spr.walkCycle then --If object has a walk cycle
+        --If object is not moving, set spr.current to idle
+        if query_shouldHalt(obj.vel.x, obj.moveSpeed) and query_shouldHalt(obj.vel.y, obj.moveSpeed) then
+            obj.spr.current = obj.spr.idle
+            --troubleshooting("halted", "halted anim "..global_tick)
+        --iterate walk cycle by cycling through the indices of walkCycle according to
+        --the modulo of global_tick; I do it this way for elegance
+        elseif global_tick % global_framesPerSprite == 0 then
+            --a per-object anim tick cycles from 1 to the length of walkCycle. It could just increment, but this prevents infinite growth if I understand it correctly
+            obj.spr.animTick = (obj.spr.animTick % #obj.spr.walkCycle) + 1
+            obj.spr.current = obj.spr.walkCycle[obj.spr.animTick]
+        else
+    end
+    elseif obj.spr.loopCycle then --If object is a simple sprite with a loop cycle, like the hazards
+        if not obj.spr.current then
+            obj.spr.current = obj.spr.loopCycle[1]
+        end
+
+        if global_tick % global_framesPerSprite == 0 then
+            --a per-object anim tick cycles from 1 to the length of loopCycle.
+            obj.spr.animTick = (obj.spr.animTick % #obj.spr.loopCycle) + 1
+            obj.spr.current = obj.spr.loopCycle[obj.spr.animTick]
+        end
+    elseif obj.spr.hoverCycle then --If object is a simple sprite with a hover cycle, like the key
+        if global_tick % global_framesPerSprite == 0 then
+            if not obj.spr.hoverCycle.high then
+                obj.spr.hoverCycle.high = obj.coords.y + obj.spr.hoverCycle.range
+                obj.spr.hoverCycle.low = obj.coords.y - obj.spr.hoverCycle.range
+                obj.spr.hoverCycle.pole = 1
+            end
+
+            --Move object by one pixel per frame, respective of a maximum and minimum height relative to origin
+            obj.coords.y += obj.spr.hoverCycle.pole
+            if obj.coords.y >= obj.spr.hoverCycle.high then
+                obj.spr.hoverCycle.pole = -1
+            elseif obj.coords.y <= obj.spr.hoverCycle.low then
+                obj.spr.hoverCycle.pole = 1
+            end
+
+        end
+
+    --If invalid object is put in table, send error.
+    else 
+        troubleshooting("objAnimateNil", "obj_animate called with incompat obj")
+        --return
+    end
+
+    spr(obj.spr.current, (obj.coords.x - (obj.spr.size * 4)), (obj.coords.y - (obj.spr.size * 4)), obj.spr.size, obj.spr.size, query_isFacingLeft(obj), false)
+
+end
+
+--Render door according to success zone, allowing for rendering not aligned to the sprite grid.
+function draw_door()
+
+    local door_x = ((level_current.zone_success.corner_1.x + level_current.zone_success.corner_2.x) / 2) - (tileSize / 2)
+    local door_y = ((level_current.zone_success.corner_1.y + level_current.zone_success.corner_2.y) / 2) - (tileSize / 2)
+
+    spr(26, door_x, door_y)
+
+end
+
+-->8
+--Utility Functions
 
 --Often my working numbers are higher values for more precision, so I need to 
 --convert them to a value more appropriate for pixels/every frame calculation
@@ -254,9 +763,6 @@ function impose_global_dampen(val)
         return
     end
 end
-
--->8
---Utility Functions
 
 --Troubleshooting function which is as simple as possible; 
 --Each message gets an ID so it doesn't get duplicated, then all messages from start of runtime
@@ -329,393 +835,13 @@ function query_doesCollide_zone(obj, zone)
     end
 end
 
+--Simple function for checking, direction facing is determined in movement code.
 function query_isFacingLeft(obj)
     if obj.direction == "⬅️" then 
         return true
     else
         return false
     end
-end
-
--->8
---Update Functions
-
-function update_gameplay()
-    
-    --Iterate global tick
-    tick_update()
-
-    levelTimer.update()
-
-    --Validate player
-    if not char_player then
-        troubleshooting("noChar", "Um, you lost your character! \n")
-    end
-
-    --Early in frame, move player
-    --then record TODO
-    move_player(char_player)
-    tempTape.write(char_player, char_player.coords.x)
-
-    --If player is in success zone, 
-    --advance level
-    if query_doesCollide_zone(char_player, zone_success) and char_player.hasKey then
-
-        advance_level()
-
-    end
-
-    --If player picks up key, stop rendering the sprite
-    if query_doesCollide_range(char_player.coords, coords_key, range_key) then
-        char_player.hasKey = true
-        del(table_toAnimate, key_current)
-    end
-
-    --For each hazard in table: if colliding with hazard, die
-    for index, hazard in pairs(table_hazards) do
-        if query_doesCollide_range(char_player.coords, hazard.coords, range_hazard) then
-            die()
-        end
-    end
-
-end
-
---Find players new x, y coords by maintaining velocity
-function move_player(player)
-
-    --(btn(x,y)) 
-    --x=0, 1 means left, right 
-    --x=2,3 means up, down
-    --y=0 means player control scheme 1, y=1 means player control scheme 2 (I have both set up to control main character so user can choose)
-    --
-    --While player presses any button, continuously add velocity to relevant direction
-    --(This is a tidy little module to reduce code repetition)
-    local function impetus(vel, pole)
-        return vel + (player.moveSpeed * pole)
-    end
-    if (btn(0,0) or btn(0,1)) player.vel.x = impetus(player.vel.x, -1)
-    if (btn(1,0) or btn(1,1)) player.vel.x = impetus(player.vel.x, 1)
-    if (btn(2,0) or btn(2,1)) player.vel.y = impetus(player.vel.y, -1)
-    if (btn(3,0) or btn(3,1)) player.vel.y = impetus(player.vel.y, 1)
-
-    --Impose limits of drag and maximum movespeed 
-    --(sidenote, I suppose movespeed max could be derived from gravity/drag affecting base movespeed)
-    local function player_imposeLimits(vel, moveSpeed)
-        local moveSpeedMax = moveSpeed * global_moveSpeedMax
-        return mid(-moveSpeedMax, (vel * global_physicsDrag), moveSpeedMax)
-    end
-    player.vel.x = player_imposeLimits(player.vel.x, player.moveSpeed)
-    player.vel.y = player_imposeLimits(player.vel.y, player.moveSpeed)
-
-    if query_shouldHalt(player.vel.x, player.moveSpeed) then
-        player.vel.x = 0
-    end
-    if query_shouldHalt(player.vel.y, player.moveSpeed) then
-        player.vel.y = 0
-    end
-
-    --Find intended x,y coords
-    player.intended.x = player.coords.x + (impose_global_dampen(player.vel.x))
-    player.intended.y = player.coords.y + (impose_global_dampen(player.vel.y))
-    --Check collision on each axis
-    --If there is collision on an axis, set the intended location back to the current one
-    if not query_canMove(player.intended.x, player.coords.y, player.width, player.height) then
-        --troubleshooting("Xsolid", "Solid X: "..player.intended.x..", "..player.coords.y)
-        player.vel.x *= -.5
-        player.intended.x = player.coords.x + (impose_global_dampen(player.vel.x))
-    end
-    if not query_canMove(player.coords.x, player.intended.y, player.width, player.height) then
-        --troubleshooting("Ysolid", "Solid Y: "..player.coords.x..", "..player.intended.y)
-        player.vel.y *= -.5
-        player.intended.y = player.coords.y + (impose_global_dampen(player.vel.y))
-    end
-    
-    --Compare player's intended x to their current x, if negative they are facing left, else right
-    --For reference: ⬅️➡️⬆️⬇️
-    if (player.intended.x - player.coords.x) < 0 then
-        player.direction = "⬅️"
-    else
-        player.direction = "➡️"
-    end
-
-    --Simply set player coords to the intended coords
-    player.coords.x = player.intended.x
-    player.coords.y = player.intended.y
-
-end
-
-function tick_update()
-
-        --Once each cycle, increment global_tick until it is reset after 64
-        if global_tick > 64 then
-            global_tick = 0
-        end
-        global_tick += 1
-
-end
-
-levelTimer = {} --Initialize level timer
---Function intentially uses reference of current level's timer
---Level timer ticks down and provides framework for the timer visual.
---TODO Need to implement a timer visual
-function levelTimer.update()
-
-    local timer = level_current.levelTimer
-
-    if not timer.current then
-        timer.current = timer.max
-    end
-
-    timer.current -= 1
-
-    if timer.current < 0 then
-        troubleshooting("levelTimer", "Too slow")
-        die()
-    end
-
-end
-
-function levelTimer.reset()
-
-    level_current.levelTimer.current = level_current.levelTimer.max
-
-end
-
-function advance_level()
-
-    local seqOrder_next = level_current.seqOrder + 1
-    local function query_isNextLevel(level)
-        if level.seqOrder == seqOrder_next then
-            level_current = level
-        end
-    end
-
-    if seqOrder_next > #levels then
-        troubleshooting("weiner", "You r the weiner!")
-    else
-        foreach(levels, query_isNextLevel())
-    end
-
-    tape.record(char_player)
-
-    die()
-
-end
-
-function die()
-    levelTimer.reset()
-    init_gameplay()
-
-end
-
---Checks if an object's bounds touch a map tile with a given sprite flag
---limited to only "is solid?" but I could modify
-function query_canMove(x, y, obj_width, obj_height)
-
-    --I'm collision checking the outer points of a cross centered in the sprite, 
-    --rather than the center or corners
-    offset_width = (((obj_width + 1) - .5) / 2) --Add 1 because pixel counts are 0 indexed, subtract a bit for gamefeel, divide by two for centering
-    offset_height = (((obj_height + 1) - .5) / 2)
-
-    local edges = {}
-
-    --Add the outer points of  a cross to an array
-    add(edges, {x - offset_width, y})
-    add(edges, {x + offset_width, y})
-    add(edges, {x, y - offset_height})
-    add(edges, {x, y + offset_height})
-
-    --If any point returns solid, return false immediately
-    --Note to self, I could use the Pico-8 foreach function here
-    for i=1, #edges do
-        if query_flagType(edges[i], spriteFlag_solid) then
-            --troubleshooting("solid", "Solid...SOLID "..x..", "..y)
-            return false
-        end
-    end
-    --troubleshooting("solid", "Clear "..x..", "..y)
-    return true
-
-end
-
---Checks a given x,y coords for a specific flag
-function query_flagType(coords_input, flagType)
-
-    --Had a more complicated use-case in mind, so this function can handle multiple flags of interest
-    spriteFlags_ofInterest = {flagType}
-
-    --Convert from screen coords to map coords, taking into consideration tile offset
-    map_x = flr((coords_input[1] / tileSize) + level_current.coords_tileOrigin.x)
-    map_y = flr((coords_input[2] / tileSize) + level_current.coords_tileOrigin.y)
-
-    --Get sprite address
-    local sprite_address = mget(map_x, map_y)
-    -- Get the flag(s) associated with the sprite
-    local spriteFlags = fget(sprite_address)
-    
-    -- Check for flag type of interest based on spriteFlags
-    for key, flag in ipairs(spriteFlags_ofInterest) do
-        if (spriteFlags & 2^flag) > 0 then
-            return true
-        end
-    end
-
-    -- Return false if spriteAddress is not of given flag type
-    return false
-end
-
---For the recording of the player's movements I'm analogizing it to VHS/film tape
-tempTape = {} --Initialize tempTape
-
---Clear tempTape simply; I just want to be explicit for clarity
-function tempTape.clear(obj)
-
-    tempTape[obj] = {}
-
-end
-
---Add a single entry to tempTape
-function tempTape.write(obj)
-
-    add(tempTape[obj], {obj.coords.x, obj.coords.y, obj.direction, level_current})
-
-end
-
-tape = {} --initialize tape
-
---Once the tempTape is finalized, record it to the final tape
-function tape.record(obj)
-
-    --Validate tempTape
-    if not tempTape[obj] then
-        troubleshooting("recordNil", "No tempTape to record")
-    end
-
-    if not finalTape then
-        finalTape = {}
-    end
-
-    --Final tape is a continuously constructed table
-    --When tempTape is finalized, append each entry in tempTape to finalTape
-    for index, entry in ipairs(tempTape[obj]) do
-        add
-        (
-            finalTape, 
-            {
-                entry.x,
-                entry.y,
-                entry.direction,
-                entry.level
-            }
-        )
-    end
-end
-
-function tape.play(obj)
-
-
-
-end
-
--->8
---Draw Functions
-
-function draw_gameplay()
-
-    cls(2)
-
-    draw_map()
-
-    if next(table_toAnimate) == nil then
-        troubleshooting("animateNil", "No objects to animate")
-    end
-
-    --Iterate through and animate each object which has an element of animation
-    for index, anim_obj in pairs(table_toAnimate) do
-        obj_animate(anim_obj)
-    end
-
-    draw_door()
-
-    draw_troubleshooting()
-
-end
-
-function draw_map()
-
-    map(coords_tileOrigin.x, coords_tileOrigin.y, 0, 0, 16, 16)
-
-end
-
-function obj_animate(obj)
-
-    if not obj.spr.animTick then
-        obj.spr.animTick = 1
-    end
-
-    if obj.spr.walkCycle then --If object has a walk cycle
-        --If object is not moving, set spr.current to idle
-        if query_shouldHalt(obj.vel.x, obj.moveSpeed) and query_shouldHalt(obj.vel.y, obj.moveSpeed) then
-            obj.spr.current = obj.spr.idle
-            --troubleshooting("halted", "halted anim "..global_tick)
-        --iterate walk cycle by cycling through the indices of walkCycle according to
-        --the modulo of global_tick; I do it this way for elegance
-        elseif global_tick % global_framesPerSprite == 0 then
-            --a per-object anim tick cycles from 1 to the length of walkCycle. It could just increment, but this prevents infinite growth if I understand it correctly
-            obj.spr.animTick = (obj.spr.animTick % #obj.spr.walkCycle) + 1
-            obj.spr.current = obj.spr.walkCycle[obj.spr.animTick]
-        else
-    end
-    elseif obj.spr.loopCycle then --If object is a simple sprite with a loop cycle, like the hazards
-        if not obj.spr.current then
-            obj.spr.current = obj.spr.loopCycle[1]
-        end
-
-        if global_tick % global_framesPerSprite == 0 then
-            --a per-object anim tick cycles from 1 to the length of loopCycle.
-            obj.spr.animTick = (obj.spr.animTick % #obj.spr.loopCycle) + 1
-            obj.spr.current = obj.spr.loopCycle[obj.spr.animTick]
-        end
-    elseif obj.spr.hoverCycle then --If object is a simple sprite with a hover cycle, like the key
-        if global_tick % global_framesPerSprite == 0 then
-            if not obj.spr.hoverCycle.high then
-                obj.spr.hoverCycle.high = obj.coords.y + obj.spr.hoverCycle.range
-                obj.spr.hoverCycle.low = obj.coords.y - obj.spr.hoverCycle.range
-                obj.spr.hoverCycle.pole = 1
-            end
-
-            --Move object by one pixel per frame, respective of a maximum and minimum height relative to origin
-            obj.coords.y += obj.spr.hoverCycle.pole
-            if obj.coords.y >= obj.spr.hoverCycle.high then
-                obj.spr.hoverCycle.pole = -1
-            elseif obj.coords.y <= obj.spr.hoverCycle.low then
-                obj.spr.hoverCycle.pole = 1
-            end
-
-        end
-
-    else
-        troubleshooting("objAnimateNil", "obj_animate called with incompat obj")
-        --return
-    end
-
-    spr(obj.spr.current, (obj.coords.x - (obj.spr.size * 4)), (obj.coords.y - (obj.spr.size * 4)), obj.spr.size, obj.spr.size, query_isFacingLeft(obj), false)
-
-end
-
-function draw_door()
-
-    local door_x = ((level_current.zone_success.corner_1.x + level_current.zone_success.corner_2.x) / 2) - (tileSize / 2)
-    local door_y = ((level_current.zone_success.corner_1.y + level_current.zone_success.corner_2.y) / 2) - (tileSize / 2)
-
-    spr(26, door_x, door_y)
-
-end
-
-function draw_player()
-
-    spr(52, char_player.coords.x, char_player.coords.y)
-
 end
 
 __gfx__
