@@ -277,10 +277,15 @@ function create_levels()
     --Add a reference to a given level to the levelsSeq table with an index of its sequence order.
     --Though this is very over-engineered, the purpose is to enable me to call levels based on the sequential order rather than the title (I particularly wanted this so levels could have appropriate names, instead of just hardcoded numbers).
     local function sequence_level(level)
-        add(levelsSeq, level, level.seqOrder)
+        levelsSeq[level.seqOrder] = level
     end
     --For each level, add a reference to it based on its sequence order.
-    foreach(levels, sequence_level())
+    foreach(levels, sequence_level)
+
+    -- For debugging, print the levelsSeq table
+    for i, level in pairs(levelsSeq) do
+    troubleshooting("levelsSeqig", "seqOrder:" .. level.seqOrder)
+    end
 
 end
 
