@@ -274,11 +274,13 @@ function create_levels()
         {max = 300} --levelTimer
     )
 
-    --Add references to the levels indexed by their sequential order. Admittedly, this is evidence of my neuroticism as I could have simply indexed the levels with their place in the sequence, but I wanted to allow each level a title and be flexible to clumsy, on the fly addition of new levels. 
+    --Add a reference to a given level to the levelsSeq table with an index of its sequence order.
+    --Though this is very over-engineered, the purpose is to enable me to call levels based on the sequential order rather than the title (I particularly wanted this so levels could have appropriate names, instead of just hardcoded numbers).
+    local function sequence_level(level)
+        add(levelsSeq, level, level.seqOrder)
+    end
+    --For each level, add a reference to it based on its sequence order.
     foreach(levels, sequence_level())
-        local function sequence_level(level)
-            add(levelsSeq, level, level.seqOrder)
-        end
 
 end
 
