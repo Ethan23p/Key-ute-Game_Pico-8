@@ -280,11 +280,8 @@ function create_levels()
         levelsSeq[level.seqOrder] = level
     end
     --For each level, add a reference to it based on its sequence order.
-    foreach(levels, sequence_level)
-
-    -- For debugging, print the levelsSeq table
-    for i, level in pairs(levelsSeq) do
-    troubleshooting("levelsSeqig", "seqOrder:" .. level.seqOrder)
+    for i, level in pairs(levels) do
+        sequence_level(level)
     end
 
 end
@@ -476,34 +473,8 @@ function levelTimer_reset()
 
 end
 
-function advance_level() --If I'm reading this correctly, this approach is probably wrong. 
-
-    --Finds the next level according to seqOrder.
-    local seqOrder_next = level_current.seqOrder + 1
-    
-    --For input level, find the next level according to seqOrder
-    --and set it as the current level
-    local function query_isNextLevel(level)
-        
-        if level.seqOrder == seqOrder_next then --Not sure why it directly sets it during the iteration, probably should store result in local variable. TODO
-            level_current = level
-        end
-    end
-
-    if seqOrder_next > #levels then
-        troubleshooting("weiner", "You r the weiner!")
-    else
-        foreach(levels, query_isNextLevel())
-    end
-
-    tape_record(char_player)
-
-    die()
-
-end
-
 --Advance by finding the next level, according to seqOrder, setting that as the current level, and ending the current run.  
-function advance_level2()
+function advance_level()
 
     local seqOrder_next = level_current.seqOrder + 1
 
