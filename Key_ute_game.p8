@@ -727,6 +727,19 @@ function draw_door()
     spr(26, door_x, door_y)
 
 end
+function draw_screenOverlay()
+
+    draw_timer()
+
+end
+
+function draw_timer()
+
+    local timerProgress = level_current.levelTimer.current / level_current.levelTimer.max 
+
+    --Unfinished
+
+end
 
 -->8
 --Utility Functions
