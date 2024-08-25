@@ -112,7 +112,7 @@ function init_game_runStart()
         {
             current = 25,
             size = 1,
-            hoverCycle = hoverCycle,
+            hoverCycle = {range = 3},
         }
     }
     --Add the key to the ToAnimate table
@@ -181,7 +181,6 @@ function init_variables()
     global_framesPerSprite = 5
     spriteFlag_solid = 0
     spriteFlag_loseCondition = 2 --Prob unused, might remove
-    hoverCycle = {range = 3}
 
     range_hazard = (8 + char_player.width/2) --in pixels
     range_key = (8 + char_player.width/2)
