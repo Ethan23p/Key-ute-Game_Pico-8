@@ -56,6 +56,8 @@ function draw_game()
 
     draw_troubleshooting()
 
+    draw_screenOverlay()
+
 end
 
 --Sets or updates foundational states and variables
@@ -102,9 +104,6 @@ function init_game_runStart()
 
     --Reset key progress
     char_player.hasKey = false
-
-    --Add the player to the ToAnimate table
-    add(table_toAnimate, char_player)
 
     key_current = 
     {
@@ -469,7 +468,7 @@ end
 function levelTimer_reset()
 
     --Reset the current level timer.
-    level_current.levelTimer.current = level_current.levelTimer_max
+    level_current.levelTimer.current = level_current.levelTimer.max
 
 end
 
@@ -601,21 +600,22 @@ function tape_record(obj)
         finalTape = {}
     end
 
-    if not finalTape[level_current.level_title] then
-        finalTape[level_current.level_title] = {}
+    if not finalTape[level_current.seqOrder] then
+        finalTape[level_current.seqOrder] = {}
     end
 
     --When tempTape is finalized, add an entry, indexed by the current level title, to the finalTape and append every entry in tempTape to that entry.
     for index, entry in ipairs(tempTape[obj]) do
         add
         (
-            finalTape[level_current.level_title], 
+            finalTape[level_current.seqOrder], 
             {
                 entry.x,
                 entry.y,
                 entry.direction
             }
         )
+        troubleshooting("tapeRecord", entry.x..", "..entry.y..", "..entry.direction)
     end
 end
 
@@ -670,8 +670,9 @@ function draw_animation()
 end
 
 --Render the player
---Currently player is drawm in "draw_animation" function, should move logic here TODO
 function draw_player()
+
+    obj_animate(char_player)
 
 end
 
