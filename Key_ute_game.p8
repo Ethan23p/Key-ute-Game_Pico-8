@@ -604,6 +604,7 @@ function tape_record(obj)
     end
 
     --When tempTape is finalized, add an entry, indexed by the current level title, to the finalTape and append every entry in tempTape to that entry.
+    --So, when I want to use this, I will access the final tape table, access the entry for the given obj, specify which level entry by seqOrder, then mess with the recorded entries. 
     for index, entry in ipairs(tempTape[obj]) do
         add
         (
@@ -614,7 +615,7 @@ function tape_record(obj)
                 entry.direction
             }
         )
-        troubleshooting("tapeRecord", entry.x..", "..entry.y..", "..entry.direction)
+        --troubleshooting("tapeRecord", entry.x..", "..entry.y..", "..entry.direction) --For TS
     end
 end
 
@@ -623,7 +624,29 @@ function tape_play(obj)
 
 end
 
+--Thus marks the shift from gameplay to rendering the final message.
+--Each frame: Calculate what the relevant values are for rendering the player sprite for each of the 3 levels,
+--also the particles, store the particles location, and then draw the maps (offset), and the player sprites (also offset),
+--and finally the particles, which are persistent so that the message can slowly formulate. 
 function init_game_levelMessage()
+
+    --Set the update and draw functions to their gameplay counterparts
+    --_update = update_message
+    --_draw = draw_message
+
+end
+
+function update_message()
+
+    frame_current_player_coords = 
+    {
+        0,
+        0
+    }
+
+end
+
+function draw_message()
 
 
 
