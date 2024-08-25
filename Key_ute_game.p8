@@ -558,13 +558,15 @@ function query_flagType(coords_input, flagType)
     return false
 end
 
---Clear tempTape simply; I just want to be explicit for clarity
+--Clear tempTape simply; I just want to be explicit for clarity.
 function tempTape_clear(obj)
 
+    --Initialize tempTape
     if not tempTape then
         tempTape = {}
     end
 
+    --Clear tempTape
     tempTape[obj] = {}
 
 end
@@ -572,11 +574,21 @@ end
 --Add a single entry to tempTape
 function tempTape_write(obj)
 
-    add(tempTape[obj], {obj.coords.x, obj.coords.y, obj.direction, level_current})
+    --Add a typically indexed entry to tempTape.obj with the details of the object at the time. 
+    add
+    (
+        tempTape[obj], 
+        {
+            x = obj.coords.x, 
+            y = obj.coords.y, 
+            direction = obj.direction, 
+            level = level_current.level_title
+        }
+    )
 
 end
 
---Once the tempTape is finalized, record it to the final tape
+--Once the tempTape for the given level is finalized, record it to the final tape
 function tape_record(obj)
 
     --Validate tempTape
@@ -584,21 +596,24 @@ function tape_record(obj)
         troubleshooting("recordNil", "No tempTape to record")
     end
 
+    --Initialize finalTape
     if not finalTape then
         finalTape = {}
     end
 
-    --Final tape is a continuously constructed table
-    --When tempTape is finalized, append each entry in tempTape to finalTape
+    if not finalTape[level_current.level_title] then
+        finalTape[level_current.level_title] = {}
+    end
+
+    --When tempTape is finalized, add an entry, indexed by the current level title, to the finalTape and append every entry in tempTape to that entry.
     for index, entry in ipairs(tempTape[obj]) do
         add
         (
-            finalTape, 
+            finalTape[level_current.level_title], 
             {
                 entry.x,
                 entry.y,
-                entry.direction,
-                entry.level
+                entry.direction
             }
         )
     end
