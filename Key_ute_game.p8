@@ -56,6 +56,8 @@ function draw_game()
 
     draw_troubleshooting()
 
+    draw_screenOverlay()
+
 end
 
 --Sets or updates foundational states and variables
@@ -103,9 +105,6 @@ function init_game_runStart()
     --Reset key progress
     char_player.hasKey = false
 
-    --Add the player to the ToAnimate table
-    add(table_toAnimate, char_player)
-
     key_current = 
     {
         coords = coords_key,
@@ -113,7 +112,7 @@ function init_game_runStart()
         {
             current = 25,
             size = 1,
-            hoverCycle = hoverCycle,
+            hoverCycle = {range = 3},
         }
     }
     --Add the key to the ToAnimate table
@@ -182,7 +181,6 @@ function init_variables()
     global_framesPerSprite = 5
     spriteFlag_solid = 0
     spriteFlag_loseCondition = 2 --Prob unused, might remove
-    hoverCycle = {range = 3}
 
     range_hazard = (8 + char_player.width/2) --in pixels
     range_key = (8 + char_player.width/2)
@@ -469,7 +467,7 @@ end
 function levelTimer_reset()
 
     --Reset the current level timer.
-    level_current.levelTimer.current = level_current.levelTimer_max
+    level_current.levelTimer.current = level_current.levelTimer.max
 
 end
 
@@ -482,7 +480,7 @@ function advance_level()
         level_current = levelsSeq[seqOrder_next]
     elseif seqOrder_next > (#levelsSeq - 1) then
         troubleshooting("weiner", "You r the weiner!")
-        init_game_levelMessage()
+        --init_game_levelMessage() --TODO
     else
         troubleshooting("advanceLevel", "Incompat next level")
     end
@@ -558,13 +556,15 @@ function query_flagType(coords_input, flagType)
     return false
 end
 
---Clear tempTape simply; I just want to be explicit for clarity
+--Clear tempTape simply; I just want to be explicit for clarity.
 function tempTape_clear(obj)
 
+    --Initialize tempTape
     if not tempTape then
         tempTape = {}
     end
 
+    --Clear tempTape
     tempTape[obj] = {}
 
 end
@@ -572,11 +572,77 @@ end
 --Add a single entry to tempTape
 function tempTape_write(obj)
 
-    add(tempTape[obj], {obj.coords.x, obj.coords.y, obj.direction, level_current})
+    --Add a typically indexed entry to tempTape.obj with the details of the object at the time. 
+    add
+    (
+        tempTape[obj], 
+        {
+            x = obj.coords.x, 
+            y = obj.coords.y, 
+            direction = obj.direction, 
+            level = level_current.seqOrder
+        }
+    )
 
 end
 
---Once the tempTape is finalized, record it to the final tape
+function tempTape_write2(obj)
+
+    local working_tempTape = tempTape[obj]
+
+    local player_data = 
+    {
+        x = obj.coords.x, 
+        y = obj.coords.y, 
+        direction = obj.direction, 
+    }
+
+    add(working_tempTape, player_data)
+
+end
+
+--Once the tempTape for the given level is finalized, record it to the final tape
+function tape_record2(obj)
+
+    --Validate tempTape
+    if not tempTape[obj] then
+        troubleshooting("recordNil", "No tempTape to record")
+        return
+    end
+
+    local working_tempTape = tempTape[obj]
+
+    --Initialize finalTape
+    if not finalTape then
+        finalTape = {}
+    end
+
+    local working_level = level_current.seqOrder
+
+    if not finalTape[working_level] then
+        finalTape[working_level] = {}
+    end
+
+    local working_finalTape = finalTape[working_level]
+
+    --When tempTape is finalized, add an entry, indexed by the current level title, to the finalTape and append every entry in tempTape to that entry.
+    --So, when I want to use this, I will access the final tape table, access the entry for the given obj, specify which level entry by seqOrder, then mess with the recorded entries. 
+    for index, entry in ipairs(working_tempTape) do
+
+        add
+        (
+            working_finalTape, 
+            {
+                entry.x,
+                entry.y,
+                entry.direction
+            }
+        )
+        --troubleshooting("tapeRecord", entry.x..", "..entry.y..", "..entry.direction) --For TS
+    end
+end
+
+--Once the tempTape for the given level is finalized, record it to the final tape
 function tape_record(obj)
 
     --Validate tempTape
@@ -584,23 +650,28 @@ function tape_record(obj)
         troubleshooting("recordNil", "No tempTape to record")
     end
 
+    --Initialize finalTape
     if not finalTape then
         finalTape = {}
     end
 
-    --Final tape is a continuously constructed table
-    --When tempTape is finalized, append each entry in tempTape to finalTape
+    if not finalTape[level_current.seqOrder] then
+        finalTape[level_current.seqOrder] = {}
+    end
+
+    --When tempTape is finalized, add an entry, indexed by the current level title, to the finalTape and append every entry in tempTape to that entry.
+    --So, when I want to use this, I will access the final tape table, access the entry for the given obj, specify which level entry by seqOrder, then mess with the recorded entries. 
     for index, entry in ipairs(tempTape[obj]) do
         add
         (
-            finalTape, 
+            finalTape[level_current.seqOrder], 
             {
                 entry.x,
                 entry.y,
-                entry.direction,
-                entry.level
+                entry.direction
             }
         )
+        --troubleshooting("tapeRecord", entry.x..", "..entry.y..", "..entry.direction) --For TS
     end
 end
 
@@ -609,7 +680,54 @@ function tape_play(obj)
 
 end
 
+--Thus marks the shift from gameplay to rendering the final message.
+--Each frame: Calculate what the relevant values are for rendering the player sprite for each of the 3 levels,
+--also the particles, store the particles location, and then draw the maps (offset), and the player sprites (also offset),
+--and finally the particles, which are persistent so that the message can slowly formulate. 
 function init_game_levelMessage()
+
+    --Set the update and draw functions to their counterparts specifically for this final portion of the game. 
+    _update = update_message
+    _draw = draw_message
+
+    messageLevel_goTime = 30
+
+    --Initialize the delay. 
+    if not messageLevel_delay then
+        messageLevel_delay = 0
+    end
+end
+
+function update_message()
+
+    --If the delay tracker is less than the goTime, increment it.
+    if messageLevel_delay < messageLevel_goTime then
+        messageLevel_delay += 1
+    end
+
+    --Make table with entries for each level for the position of the playhead, set to 1.  
+    if not playhead_position then
+        playhead_position = {}
+        for level_seqOrder, level in pairs(levelsSeq) do
+            playhead_position[level_seqOrder] = 1
+        end
+    end
+
+    if not playhead_level then
+        playhead_level = 1
+    else
+        playhead_level = (playhead_level + 1 % #playhead_position) + 1
+    end
+
+    --Find the parameters of the sprite at the current playhead position.
+    frame_current_player_coords = 
+    {
+        x = finalTape[seqOrder[playhead_level[playhead_position]]]
+    }
+
+end
+
+function draw_message()
 
 
 
@@ -655,8 +773,9 @@ function draw_animation()
 end
 
 --Render the player
---Currently player is drawm in "draw_animation" function, should move logic here TODO
 function draw_player()
+
+    obj_animate(char_player)
 
 end
 
@@ -725,6 +844,19 @@ function draw_door()
     local door_y = ((level_current.zone_success.corner_1.y + level_current.zone_success.corner_2.y) / 2) - (tileSize / 2)
 
     spr(26, door_x, door_y)
+
+end
+function draw_screenOverlay()
+
+    draw_timer()
+
+end
+
+function draw_timer()
+
+    local timerProgress = level_current.levelTimer.current / level_current.levelTimer.max 
+
+    --Unfinished
 
 end
 
