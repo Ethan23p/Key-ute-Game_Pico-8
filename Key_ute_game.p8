@@ -3,7 +3,7 @@ version 42
 __lua__
 -- Key-ute Game
 -- idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
--- for Cassie ♥
+-- for Cassie ♥ 
 
 -->8
 --Flow Functions - init, update, draw
@@ -556,7 +556,7 @@ function query_flagType(coords_input, flagType)
     return false
 end
 
---Clear tempTape simply; I just want to be explicit for clarity.
+--Clear tempTape simply (I just want to be explicit for clarity).
 function tempTape_clear(obj)
 
     --Initialize tempTape
@@ -572,7 +572,6 @@ end
 --Add a single entry to tempTape
 function tempTape_write(obj)
 
-    --Add a typically indexed entry to tempTape.obj with the details of the object at the time. 
     add
     (
         tempTape[obj], 
@@ -586,6 +585,7 @@ function tempTape_write(obj)
 
 end
 
+--Add a single frame of player data to tempTape.
 function tempTape_write2(obj)
 
     local working_tempTape = tempTape[obj]
@@ -601,18 +601,14 @@ function tempTape_write2(obj)
 
 end
 
---Once the tempTape for the given level is finalized, record it to the final tape
+--Given that the tempTape for the given level is finalized, copy it to the final tape
 function tape_record2(obj)
 
-    --Validate tempTape
     if not tempTape[obj] then
-        troubleshooting("recordNil", "No tempTape to record")
+        troubleshooting("recordNil", "No tempTape to record for "..obj)
         return
     end
 
-    local working_tempTape = tempTape[obj]
-
-    --Initialize finalTape
     if not finalTape then
         finalTape = {}
     end
@@ -623,22 +619,20 @@ function tape_record2(obj)
         finalTape[working_level] = {}
     end
 
+    local working_tempTape = tempTape[obj]
     local working_finalTape = finalTape[working_level]
 
-    --When tempTape is finalized, add an entry, indexed by the current level title, to the finalTape and append every entry in tempTape to that entry.
-    --So, when I want to use this, I will access the final tape table, access the entry for the given obj, specify which level entry by seqOrder, then mess with the recorded entries. 
     for index, entry in ipairs(working_tempTape) do
 
-        add
-        (
-            working_finalTape, 
-            {
-                entry.x,
-                entry.y,
-                entry.direction
-            }
-        )
-        --troubleshooting("tapeRecord", entry.x..", "..entry.y..", "..entry.direction) --For TS
+        local player_data = 
+        {
+            x = entry.x, 
+            y = entry.y, 
+            direction = entry.direction, 
+        }
+
+        add(working_finalTape, player_data)
+
     end
 end
 
@@ -681,12 +675,8 @@ function tape_play(obj)
 end
 
 --Thus marks the shift from gameplay to rendering the final message.
---Each frame: Calculate what the relevant values are for rendering the player sprite for each of the 3 levels,
---also the particles, store the particles location, and then draw the maps (offset), and the player sprites (also offset),
---and finally the particles, which are persistent so that the message can slowly formulate. 
 function init_game_levelMessage()
 
-    --Set the update and draw functions to their counterparts specifically for this final portion of the game. 
     _update = update_message
     _draw = draw_message
 
@@ -696,6 +686,7 @@ function init_game_levelMessage()
     if not messageLevel_delay then
         messageLevel_delay = 0
     end
+
 end
 
 --Initiate variables and functions for the message portion of the game. 
@@ -750,7 +741,7 @@ function update_message()
         messageLevel_delay += 1
     end
 
-    --Make table with entries for each level for the position of the playhead, set to 1.  
+    --Initialize table with entries for each level for the position of the playhead, set to 1.  
     if not playhead_position then
         playhead_position = {}
         for level_seqOrder, level in pairs(levelsSeq) do
