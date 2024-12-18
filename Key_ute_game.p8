@@ -707,25 +707,31 @@ end
 
 --Manage the message sequencing, set the current player movement data, track the particles.
 function update_message2()
-    
-        if messageLevel_delay < messageLevel_goTime then
-            messageLevel_delay += 1
-            return
-        end
 
+    --If the delay tracker is less than the goTime, increment it and return.
+    if messageLevel_delay < messageLevel_goTime then
+        messageLevel_delay += 1
+        return
+    end
+
+    --Increment current frame, set end of frames for current level.
     playhead_frame += 1
     playhead_stop = #finalTape[playhead_level]
 
+    --Set the current player movement data; global so that it can be used in the draw function.
     local message_level = levelsSeq[playhead_level]
     message_playerData_current = message_level[playhead_frame]
 
+    --Build a massive table of particle positions.
     add(message_particles, message_playerData_current)
 
+    --If the playhead has reached the end of the level, reset it and increment the level.
     if playhead_frame >= playhead_stop then
 
         playhead_frame = 0
         playhead_level += 1
 
+        --If the playhead has reached the end of the finalTape, reset it to the first level.
         if playhead_level > #finalTape then
             playhead_level = 1
         end
