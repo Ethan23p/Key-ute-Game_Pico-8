@@ -707,25 +707,31 @@ end
 
 --Manage the message sequencing, set the current player movement data, track the particles.
 function update_message2()
-    
-        if messageLevel_delay < messageLevel_goTime then
-            messageLevel_delay += 1
-            return
-        end
 
+    --If the delay tracker is less than the goTime, increment it and return.
+    if messageLevel_delay < messageLevel_goTime then
+        messageLevel_delay += 1
+        return
+    end
+
+    --Increment current frame, set end of frames for current level.
     playhead_frame += 1
     playhead_stop = #finalTape[playhead_level]
 
+    --Set the current player movement data; global so that it can be used in the draw function.
     local message_level = levelsSeq[playhead_level]
     message_playerData_current = message_level[playhead_frame]
 
+    --Build a massive table of particle positions.
     add(message_particles, message_playerData_current)
 
+    --If the playhead has reached the end of the level, reset it and increment the level.
     if playhead_frame >= playhead_stop then
 
         playhead_frame = 0
         playhead_level += 1
 
+        --If the playhead has reached the end of the finalTape, reset it to the first level.
         if playhead_level > #finalTape then
             playhead_level = 1
         end
@@ -775,6 +781,8 @@ function draw_message2()
     end
 end
 
+--TODO
+--Draw map 3 times for the 3 levels, each with their corresponding originTile, offset, and width.
 function draw_map_message()
 
 
@@ -797,7 +805,7 @@ function clear_screen()
 
 end
 
---Render the game world, presumeably before (under) other objects
+--Render the game world, presumably before (under) other objects
 function draw_map()
 
     map(coords_tileOrigin.x, coords_tileOrigin.y, 0, 0, 16, 16)
@@ -900,6 +908,7 @@ function draw_door()
     spr(26, door_x, door_y)
 
 end
+
 function draw_screenOverlay()
 
     draw_timer()
