@@ -698,6 +698,51 @@ function init_game_levelMessage()
     end
 end
 
+--Initiate variables and functions for the message portion of the game. 
+function init_game_levelMessage2()
+
+    _update = update_message
+    _draw = draw_message
+
+    messageLevel_goTime = 30
+    messageLevel_delay = 0
+    
+    playhead_level = 1 
+    playhead_frame = 0
+
+    message_particles = {}
+
+end
+
+--Manage the message sequencing, set the current player movement data, track the particles.
+function update_message2()
+    
+        if messageLevel_delay < messageLevel_goTime then
+            messageLevel_delay += 1
+            return
+        end
+
+    playhead_frame += 1
+    playhead_stop = #finalTape[playhead_level]
+
+    local message_level = levelsSeq[playhead_level]
+    message_playerData_current = message_level[playhead_frame]
+
+    add(message_particles, message_playerData_current)
+
+    if playhead_frame >= playhead_stop then
+
+        playhead_frame = 0
+        playhead_level += 1
+
+        if playhead_level > #finalTape then
+            playhead_level = 1
+        end
+
+    end
+
+end
+
 function update_message()
 
     --If the delay tracker is less than the goTime, increment it.
@@ -724,6 +769,24 @@ function update_message()
     {
         x = finalTape[seqOrder[playhead_level[playhead_position]]]
     }
+
+end
+
+--Clear the screen, draw the map, draw every particle so far, draw the player sprite.
+function draw_message2()
+
+    clear_screen()
+
+    draw_map_message()
+
+    for index, particle in ipairs(message_particles) do
+        
+    end
+end
+
+function draw_map_message()
+
+
 
 end
 
