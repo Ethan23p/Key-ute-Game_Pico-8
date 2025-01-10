@@ -48,7 +48,7 @@ function draw_game()
 
     draw_map()
 
-    draw_ojects()
+    draw_objects()
 
     draw_animation()
 
@@ -63,7 +63,7 @@ end
 --Sets or updates foundational states and variables
 function init_game_construction()
 
-    --Set the update and draw functions to their gameplay counterparts
+    --Set the update and draw functions to their game-play counterparts
     _update = update_game
     _draw = draw_game
 
@@ -151,7 +151,7 @@ function init_variables()
         moveSpeed = 16, --base moveSpeed, everything else will be based on this
         vel = {x = 0, y = 0},
         intended = {x = 16, y = 16},
-        width = 7, --remeber that pixel counting effectively starts at 0
+        width = 7, --remember that pixel counting effectively starts at 0
         height = 7,
         spr = 
         {
@@ -204,7 +204,7 @@ function init_variables()
 end
 
 --Like a factory, create the levels using the parameters set here. 
---This function creates objects in the levels table using the next function, a psuedo-class.
+--This function creates objects in the levels table using the next function, a pseudo-class.
 --This approach involves some boilerplate for readability, to account for the lack of classes in Lua. 
 function create_levels()
     --[[level_title, seqOrder, coords_spawn, 
@@ -284,7 +284,7 @@ function create_levels()
 
 end
 
---Custom psuedo class to create entries into the levels table.
+--Custom pseudo class to create entries into the levels table.
 --Not confident this is the best approach, but it seems like a 
 --slightly elegant workaround for the lack of classes in Lua.
 function create_level(level_title, seqOrder, coords_spawn, 
@@ -310,7 +310,7 @@ end
 -->8
 --Update Functions
 
---Update core game systems, like the gameplay tick and timer
+--Update core game systems, like the game-play tick and timer
 function update_game_systems()
 
     --Iterate global tick
@@ -384,8 +384,8 @@ function move_player(player)
     if (btn(2,0) or btn(2,1)) player.vel.y = impetus(player.vel.y, -1)
     if (btn(3,0) or btn(3,1)) player.vel.y = impetus(player.vel.y, 1)
 
-    --Impose limits of drag and maximum movespeed 
-    --(sidenote, I suppose movespeed max could be derived from gravity/drag affecting base movespeed)
+    --Impose limits of drag and maximum move-speed 
+    --(side note, I suppose move-speed max could be derived from gravity/drag affecting base move-speed)
     local function player_imposeLimits(vel, moveSpeed)
         local moveSpeedMax = moveSpeed * global_moveSpeedMax
         return mid(-moveSpeedMax, (vel * global_physicsDrag), moveSpeedMax)
@@ -444,7 +444,7 @@ end
 --Need to implement a timer visual, TODO
 function levelTimer_update()
 
-    --Intentially uses reference of current level's timer so that then
+    --Intentionally uses reference of current level's timer so that then
     --timer can be preserved per level; only timer max is constant.
     local timer = level_current.levelTimer
 
@@ -482,7 +482,7 @@ function advance_level()
         troubleshooting("weiner", "You r the weiner!")
         --init_game_levelMessage() --TODO
     else
-        troubleshooting("advanceLevel", "Incompat next level")
+        troubleshooting("advanceLevel", "Incompatible next level")
     end
 
     tape_record(char_player)
@@ -496,7 +496,7 @@ function die()
 
     levelTimer_reset()
 
-    --Because init_game references live variables, calling it will always reset the gamestate according to the set current level.
+    --Because init_game references live variables, calling it will always reset the game-state according to the set current level.
     init_game()
 
 end
@@ -507,7 +507,7 @@ function query_canMove(x, y, obj_width, obj_height)
 
     --I'm collision checking the outer points of a cross centered in the sprite, 
     --rather than the center or corners
-    offset_width = (((obj_width + 1) - .5) / 2) --Add 1 because pixel counts are 0 indexed, subtract a bit for gamefeel, divide by two for centering
+    offset_width = (((obj_width + 1) - .5) / 2) --Add 1 because pixel counts are 0 indexed, subtract a bit for game-feel, divide by two for centering
     offset_height = (((obj_height + 1) - .5) / 2)
 
     --Add the outer points of  a cross to an array
@@ -726,7 +726,7 @@ function draw_map()
 end
 
 --Render objects which are imposed on the map
-function draw_ojects()
+function draw_objects()
 
     draw_door()
 
@@ -804,7 +804,7 @@ function obj_animate(obj)
 
     --If invalid object is put in table, send error.
     else 
-        troubleshooting("objAnimateNil", "obj_animate called with incompat obj")
+        troubleshooting("objAnimateNil", "obj_animate called with incompatible obj")
         --return
     end
 
