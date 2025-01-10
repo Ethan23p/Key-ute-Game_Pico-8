@@ -569,24 +569,8 @@ function tempTape_clear(obj)
 
 end
 
---Add a single entry to tempTape
-function tempTape_write(obj)
-
-    add
-    (
-        tempTape[obj], 
-        {
-            x = obj.coords.x, 
-            y = obj.coords.y, 
-            direction = obj.direction, 
-            level = level_current.seqOrder
-        }
-    )
-
-end
-
 --Add a single frame of player data to tempTape.
-function tempTape_write2(obj)
+function tempTape_write(obj)
 
     local working_tempTape = tempTape[obj]
 
@@ -602,7 +586,7 @@ function tempTape_write2(obj)
 end
 
 --Given that the tempTape for the given level is finalized, copy it to the final tape
-function tape_record2(obj)
+function tape_record(obj)
 
     if not tempTape[obj] then
         troubleshooting("recordNil", "No tempTape to record for "..obj)
@@ -636,61 +620,13 @@ function tape_record2(obj)
     end
 end
 
---Once the tempTape for the given level is finalized, record it to the final tape
-function tape_record(obj)
-
-    --Validate tempTape
-    if not tempTape[obj] then
-        troubleshooting("recordNil", "No tempTape to record")
-    end
-
-    --Initialize finalTape
-    if not finalTape then
-        finalTape = {}
-    end
-
-    if not finalTape[level_current.seqOrder] then
-        finalTape[level_current.seqOrder] = {}
-    end
-
-    --When tempTape is finalized, add an entry, indexed by the current level title, to the finalTape and append every entry in tempTape to that entry.
-    --So, when I want to use this, I will access the final tape table, access the entry for the given obj, specify which level entry by seqOrder, then mess with the recorded entries. 
-    for index, entry in ipairs(tempTape[obj]) do
-        add
-        (
-            finalTape[level_current.seqOrder], 
-            {
-                entry.x,
-                entry.y,
-                entry.direction
-            }
-        )
-        --troubleshooting("tapeRecord", entry.x..", "..entry.y..", "..entry.direction) --For TS
-    end
-end
-
 --TODO
 function tape_play(obj)
 
 end
 
---Thus marks the shift from gameplay to rendering the final message.
-function init_game_levelMessage()
-
-    _update = update_message
-    _draw = draw_message
-
-    messageLevel_goTime = 30
-
-    --Initialize the delay. 
-    if not messageLevel_delay then
-        messageLevel_delay = 0
-    end
-
-end
-
 --Initiate variables and functions for the message portion of the game. 
-function init_game_levelMessage2()
+function init_game_levelMessage()
 
     _update = update_message
     _draw = draw_message
@@ -706,7 +642,7 @@ function init_game_levelMessage2()
 end
 
 --Manage the message sequencing, set the current player movement data, track the particles.
-function update_message2()
+function update_message()
 
     --If the delay tracker is less than the goTime, increment it and return.
     if messageLevel_delay < messageLevel_goTime then
@@ -718,78 +654,55 @@ function update_message2()
     playhead_frame += 1
     playhead_stop = #finalTape[playhead_level]
 
+    
+    --If the playhead has reached the end of the current level's sequence, reset it and increment the level.
+    if playhead_frame >= playhead_stop then
+        
+        playhead_frame = 0
+        playhead_level += 1
+        
+        
+    end
+
+    --If the playhead has reached the end of the finalTape, reset it to the first level.
+    if playhead_level > #finalTape then
+        playhead_level = 1
+    end
+
     --Set the current player movement data; global so that it can be used in the draw function.
-    local message_level = levelsSeq[playhead_level]
-    message_playerData_current = message_level[playhead_frame]
+    --Defined above, this can be used simply like: message_playerData_current.y
+    local level_ofFinalTape = finalTape.char_player[playhead_level]
+    local frame_ofLevel= level_ofFinalTape[playhead_frame]
+    
+    message_playerData_current = frame_ofLevel
 
     --Build a massive table of particle positions.
     add(message_particles, message_playerData_current)
 
-    --If the playhead has reached the end of the level, reset it and increment the level.
-    if playhead_frame >= playhead_stop then
-
-        playhead_frame = 0
-        playhead_level += 1
-
-        --If the playhead has reached the end of the finalTape, reset it to the first level.
-        if playhead_level > #finalTape then
-            playhead_level = 1
-        end
-
-    end
-
-end
-
-function update_message()
-
-    --If the delay tracker is less than the goTime, increment it.
-    if messageLevel_delay < messageLevel_goTime then
-        messageLevel_delay += 1
-    end
-
-    --Initialize table with entries for each level for the position of the playhead, set to 1.  
-    if not playhead_position then
-        playhead_position = {}
-        for level_seqOrder, level in pairs(levelsSeq) do
-            playhead_position[level_seqOrder] = 1
-        end
-    end
-
-    if not playhead_level then
-        playhead_level = 1
-    else
-        playhead_level = (playhead_level + 1 % #playhead_position) + 1
-    end
-
-    --Find the parameters of the sprite at the current playhead position.
-    frame_current_player_coords = 
-    {
-        x = finalTape[seqOrder[playhead_level[playhead_position]]]
-    }
-
 end
 
 --Clear the screen, draw the map, draw every particle so far, draw the player sprite.
-function draw_message2()
+function draw_message()
 
     clear_screen()
 
     draw_map_message()
 
     for index, particle in ipairs(message_particles) do
-        
+        --insert draw sprite function
+        spr(particle.x, particle.y, 1, 1, (query_isFacingLeft(particle)))
     end
+
+    --Generate lazy walking sprite by adding the modulo of global_tick to the start of the walk cycle
+    local message_walkingSprite = 
+    (char_player.spr.walkCycle_start + ((global_tick % char_player.spr.walkCycle_length)))
+    --Draw player character puppet.
+    spr(message_walkingSprite, message_playerData_current.x, message_playerData_current.y, 1, 1, (query_isFacingLeft(message_playerData_current)))
 end
 
 --TODO
 --Draw map 3 times for the 3 levels, each with their corresponding originTile, offset, and width.
 function draw_map_message()
-
-
-
-end
-
-function draw_message()
 
 
 
