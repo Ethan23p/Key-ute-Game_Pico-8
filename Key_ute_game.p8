@@ -814,6 +814,66 @@ end
 
 function obj_animate2(obj)
 
+    local spr = obj.spr
+    local function doIncrement()
+        if global_tick % global_framesPerSprite == 0 then
+            return true
+        else
+            return false
+        end
+    end
+
+    if not spr.animTick then
+        spr.animTick = 1
+    end
+
+    if spr.animType == "walkCycle" then 
+        anim_walk(obj, spr)
+
+    elseif spr.animType == "loopCycle" then 
+        anim_loop(obj, spr)
+
+    elseif spr.animType == "hoverCycle" then 
+        anim_hover(obj, spr)
+    else
+        troubleshooting("objAnimateNil", "obj_animate called without animType")
+    end
+
+    --Returns x adjusted for sprite size, given that pico-8 renders the sprite from the bottom left corner.
+    local function spr_xy(xy_coord)
+        return (xy_coord - (spr.size * 4))
+    end
+    spr(spr.current, spr_xy(obj.coords.x), spr_xy(obj.coords.y), foo, bar, foo, bar)
+end
+
+function anim_walk(obj, spr)
+
+    local function isStill(obj)
+        if query_shouldHalt(obj.vel.x, obj.moveSpeed) and query_shouldHalt(obj.vel.y, obj.moveSpeed) then
+            return true
+        else
+            return false
+        end
+    end
+
+    if isStill(obj) then
+        spr.current = spr.idle
+        return
+    elseif doIncrement() then
+        local walkStep = spr.walkCycle[(global_tick % #spr.walkCycle) + 1]
+        spr.current = walkStep
+    end
+
+end
+
+function anim_loop(obj, spr)
+
+
+end
+
+function anim_hover(obj, spr)
+
+
 
 
 end
