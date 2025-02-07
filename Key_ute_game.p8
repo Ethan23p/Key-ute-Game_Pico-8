@@ -812,6 +812,12 @@ function obj_animate(obj)
 
 end
 
+function obj_animate2(obj)
+
+
+
+end
+
 --Render door according to success zone, allowing for rendering not aligned to the sprite grid.
 function draw_door()
 
