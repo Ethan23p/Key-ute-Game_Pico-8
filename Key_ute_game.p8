@@ -839,7 +839,7 @@ function obj_animate2(obj)
         troubleshooting("objAnimateNil", "obj_animate called without animType")
     end
 
-    --Returns x adjusted for sprite size, given that pico-8 renders the sprite from the bottom left corner.
+    --Returns x adjusted for sprite size, given that pico-8 renders the sprite from the bottom left corner. 
     local function spr_xy(xy_coord)
         return (xy_coord - (spr.size * 4))
     end
