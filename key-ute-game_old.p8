@@ -3,7 +3,7 @@ version 42
 __lua__
 -- Key-ute Game
 -- idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
--- for Cassie ♥ 
+-- for Cassie ♥
 
 -->8
 --Flow Functions - init, update, draw
@@ -30,18 +30,18 @@ end
 function update_game()
 
     update_game_systems()
-    
+
     update_game_validation()
-    
+
     update_game_move()
-    
+
     update_game_conditions()
-    
+
 end
 
 --Every frame, after the logic is processed, render to the screen
---The current pipeline is: map, objects, animated objects, then player but 
---a more complex pipeline would allow for objects in the foreground / allow objects & player to be placed at various depths 
+--The current pipeline is: map, objects, animated objects, then player but
+--a more complex pipeline would allow for objects in the foreground / allow objects & player to be placed at various depths
 function draw_game()
 
     clear_screen()
@@ -70,7 +70,7 @@ function init_game_construction()
     --Start creating levels
 
     --initialize level_current
-    if not level_current then 
+    if not level_current then
         level_current = levels[level_initial]
     end
 
@@ -82,10 +82,10 @@ function init_game_construction()
     table_hazards = level_current.table_hazards
 
     --Validate level parameters
-    if coords_spawn == nil 
-    or zone_success == nil 
-    or coords_tileOrigin == nil 
-    or coords_key == nil 
+    if coords_spawn == nil
+    or zone_success == nil
+    or coords_tileOrigin == nil
+    or coords_key == nil
     or table_hazards == nil
     then
         troubleshooting("levelParams","Hey, setting the level params doesn't work! \n")
@@ -105,10 +105,10 @@ function init_game_runStart()
     --Reset key progress
     char_player.hasKey = false
 
-    key_current = 
+    key_current =
     {
         coords = coords_key,
-        spr = 
+        spr =
         {
             current = 25,
             size = 1,
@@ -117,7 +117,7 @@ function init_game_runStart()
     }
     --Add the key to the ToAnimate table
     add(table_toAnimate, key_current)
-    --Give each entry in the hazards table a loop cycle variable (indicates this is an object with a simple anim, rather than a walk cycle) 
+    --Give each entry in the hazards table a loop cycle variable (indicates this is an object with a simple anim, rather than a walk cycle)
     --then add each entry in the table to the ToAnimate table
     for index, hazard in ipairs(table_hazards) do
         hazard.spr = {}
@@ -138,8 +138,8 @@ end
 -->8
 --Init Functions
 
---A simple function for creating variables that must exist on program 
---start or are useful to be able to quickly tweak when developing. 
+--A simple function for creating variables that must exist on program
+--start or are useful to be able to quickly tweak when developing.
 function init_variables()
     foo = "bar"
 
@@ -153,7 +153,7 @@ function init_variables()
         intended = {x = 16, y = 16},
         width = 7, --remember that pixel counting effectively starts at 0
         height = 7,
-        spr = 
+        spr =
         {
             idle = 56,
             walkCycle_start = 57,
@@ -185,9 +185,9 @@ function init_variables()
     range_hazard = (8 + char_player.width/2) --in pixels
     range_key = (8 + char_player.width/2)
 
-    --Animation iterates through these sprites 
+    --Animation iterates through these sprites
     --It would be more elegant to set states and timing and construct the cycle on the fly
-    sprite_hazardCycle = 
+    sprite_hazardCycle =
     {
         66, 64, 64, 64, 64, 64, 64, 64,--Rest state 1, settles for 1 frame then rests
         68, 70, 72, 68, 70, 72, --Spinning state 1
@@ -203,22 +203,22 @@ function init_variables()
     table_toAnimate = {}
 end
 
---Like a factory, create the levels using the parameters set here. 
+--Like a factory, create the levels using the parameters set here.
 --This function creates objects in the levels table using the next function, a pseudo-class.
---This approach involves some boilerplate for readability, to account for the lack of classes in Lua. 
+--This approach involves some boilerplate for readability, to account for the lack of classes in Lua.
 function create_levels()
-    --[[level_title, seqOrder, coords_spawn, 
+    --[[level_title, seqOrder, coords_spawn,
     zone_success, coords_tileOrigin, coords_key, table_hazards, timer]]
     --[[
-        I want to use the coords from the Pico-8 map editor so I have to: 
+        I want to use the coords from the Pico-8 map editor so I have to:
         convert each value from map editor coords to screen space and then
         account for offset.
     --]]
 
     --Returns input value from map editor coords "to Screen with Offset"
     local function toScr_wOff(val, offset) --I've given everything clearer names for readability, but I just couldn't bear this function being so long
-        if offset == nil then 
-            offset = 0 
+        if offset == nil then
+            offset = 0
         end
         return ((val - (originOffset * offset)) * tileSize)
     end
@@ -285,13 +285,13 @@ function create_levels()
 end
 
 --Custom pseudo class to create entries into the levels table.
---Not confident this is the best approach, but it seems like a 
+--Not confident this is the best approach, but it seems like a
 --slightly elegant workaround for the lack of classes in Lua.
-function create_level(level_title, seqOrder, coords_spawn, 
+function create_level(level_title, seqOrder, coords_spawn,
     zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer)
 
-    if levels[level_title] then 
-        troubleshooting("levelExists", "Hey, that level, "..level_title..",\n already exists! \n") 
+    if levels[level_title] then
+        troubleshooting("levelExists", "Hey, that level, "..level_title..",\n already exists! \n")
         return
     end
 
@@ -369,8 +369,8 @@ end
 --Find players new x, y coords by maintaining velocity
 function move_player(player)
 
-    --(btn(x,y)) 
-    --x=0, 1 means left, right 
+    --(btn(x,y))
+    --x=0, 1 means left, right
     --x=2,3 means up, down
     --y=0 means player control scheme 1, y=1 means player control scheme 2 (I have both set up to control main character so user can choose)
     --
@@ -384,7 +384,7 @@ function move_player(player)
     if (btn(2,0) or btn(2,1)) player.vel.y = impetus(player.vel.y, -1)
     if (btn(3,0) or btn(3,1)) player.vel.y = impetus(player.vel.y, 1)
 
-    --Impose limits of drag and maximum move-speed 
+    --Impose limits of drag and maximum move-speed
     --(side note, I suppose move-speed max could be derived from gravity/drag affecting base move-speed)
     local function player_imposeLimits(vel, moveSpeed)
         local moveSpeedMax = moveSpeed * global_moveSpeedMax
@@ -404,7 +404,7 @@ function move_player(player)
     player.intended.x = player.coords.x + (impose_global_dampen(player.vel.x))
     player.intended.y = player.coords.y + (impose_global_dampen(player.vel.y))
     --Check collision on each axis.
-    --If there is collision on an axis, reverse movement and greatly reduce velocity on that axis. 
+    --If there is collision on an axis, reverse movement and greatly reduce velocity on that axis.
     if not query_canMove(player.intended.x, player.coords.y, player.width, player.height) then
         --troubleshooting("Xsolid", "Solid X: "..player.intended.x..", "..player.coords.y)
         player.vel.x *= -.5
@@ -471,7 +471,7 @@ function levelTimer_reset()
 
 end
 
---Advance by finding the next level, according to seqOrder, setting that as the current level, and ending the current run.  
+--Advance by finding the next level, according to seqOrder, setting that as the current level, and ending the current run.
 function advance_level()
 
     local seqOrder_next = level_current.seqOrder + 1
@@ -505,7 +505,7 @@ end
 --limited to only "is solid?" but I could modify
 function query_canMove(x, y, obj_width, obj_height)
 
-    --I'm collision checking the outer points of a cross centered in the sprite, 
+    --I'm collision checking the outer points of a cross centered in the sprite,
     --rather than the center or corners
     offset_width = (((obj_width + 1) - .5) / 2) --Add 1 because pixel counts are 0 indexed, subtract a bit for game-feel, divide by two for centering
     offset_height = (((obj_height + 1) - .5) / 2)
@@ -574,11 +574,11 @@ function tempTape_write(obj)
 
     local working_tempTape = tempTape[obj]
 
-    local player_data = 
+    local player_data =
     {
-        x = obj.coords.x, 
-        y = obj.coords.y, 
-        direction = obj.direction, 
+        x = obj.coords.x,
+        y = obj.coords.y,
+        direction = obj.direction,
     }
 
     add(working_tempTape, player_data)
@@ -608,11 +608,11 @@ function tape_record(obj)
 
     for index, entry in ipairs(working_tempTape) do
 
-        local player_data = 
+        local player_data =
         {
-            x = entry.x, 
-            y = entry.y, 
-            direction = entry.direction, 
+            x = entry.x,
+            y = entry.y,
+            direction = entry.direction,
         }
 
         add(working_finalTape, player_data)
@@ -625,7 +625,7 @@ function tape_play(obj)
 
 end
 
---Initiate variables and functions for the message portion of the game. 
+--Initiate variables and functions for the message portion of the game.
 function init_game_levelMessage()
 
     _update = update_message
@@ -633,8 +633,8 @@ function init_game_levelMessage()
 
     messageLevel_goTime = 30
     messageLevel_delay = 0
-    
-    playhead_level = 1 
+
+    playhead_level = 1
     playhead_frame = 0
 
     message_particles = {}
@@ -654,14 +654,14 @@ function update_message()
     playhead_frame += 1
     playhead_stop = #finalTape[playhead_level]
 
-    
+
     --If the playhead has reached the end of the current level's sequence, reset it and increment the level.
     if playhead_frame >= playhead_stop then
-        
+
         playhead_frame = 0
         playhead_level += 1
-        
-        
+
+
     end
 
     --If the playhead has reached the end of the finalTape, reset it to the first level.
@@ -673,7 +673,7 @@ function update_message()
     --Defined above, this can be used simply like: message_playerData_current.y
     local level_ofFinalTape = finalTape.char_player[playhead_level]
     local frame_ofLevel= level_ofFinalTape[playhead_frame]
-    
+
     message_playerData_current = frame_ofLevel
 
     --Build a massive table of particle positions.
@@ -694,7 +694,7 @@ function draw_message()
     end
 
     --Generate lazy walking sprite by adding the modulo of global_tick to the start of the walk cycle
-    local message_walkingSprite = 
+    local message_walkingSprite =
     (char_player.spr.walkCycle_start + ((global_tick % char_player.spr.walkCycle_length)))
     --Draw player character puppet.
     spr(message_walkingSprite, message_playerData_current.x, message_playerData_current.y, 1, 1, (query_isFacingLeft(message_playerData_current)))
@@ -803,7 +803,7 @@ function obj_animate(obj)
         end
 
     --If invalid object is put in table, send error.
-    else 
+    else
         troubleshooting("objAnimateNil", "obj_animate called with incompatible obj")
         --return
     end
@@ -830,7 +830,7 @@ end
 
 function draw_timer()
 
-    local timerProgress = level_current.levelTimer.current / level_current.levelTimer.max 
+    local timerProgress = level_current.levelTimer.current / level_current.levelTimer.max
 
     --Unfinished
 
@@ -839,10 +839,10 @@ end
 -->8
 --Utility Functions
 
---Often my working numbers are higher values for more precision, so I need to 
+--Often my working numbers are higher values for more precision, so I need to
 --convert them to a value more appropriate for pixels/every frame calculation
 function impose_global_dampen(val)
-    if type(val) == "number" then 
+    if type(val) == "number" then
         return val * global_dampen
     else
         troubleshooting("notNumberInGlob", "Hey, that's not a number \nin impose_global_dampen! \n")
@@ -850,14 +850,14 @@ function impose_global_dampen(val)
     end
 end
 
---Troubleshooting function which is as simple as possible; 
+--Troubleshooting function which is as simple as possible;
 --Each message gets an ID so it doesn't get duplicated, then all messages from start of runtime
 --are stored in a table so they can be drawn at the end of the frame.
 --Troubleshooting messages can be added from anywhere in the stack, overwrite their previous messages, and don't expire.
 function troubleshooting(id, msg)
 
-    if not ts_messages then 
-        ts_messages = {} 
+    if not ts_messages then
+        ts_messages = {}
     end
 
     ts_messages[id] = msg
@@ -910,10 +910,10 @@ function query_doesCollide_zone(obj, zone)
     local x = obj.coords.x
     local y = obj.coords.y
 
-    if (zone.corner_1.x < x) 
-    and (x < zone.corner_2.x) 
-    and (zone.corner_1.y < y) 
-    and (y < zone.corner_2.y) 
+    if (zone.corner_1.x < x)
+    and (x < zone.corner_2.x)
+    and (zone.corner_1.y < y)
+    and (y < zone.corner_2.y)
     then
         return true
     else
@@ -923,7 +923,7 @@ end
 
 --Simple function for checking, direction facing is determined in movement code.
 function query_isFacingLeft(obj)
-    if obj.direction == "⬅️" then 
+    if obj.direction == "⬅️" then
         return true
     else
         return false
