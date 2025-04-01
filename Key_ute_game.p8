@@ -49,6 +49,8 @@ function draw_game()
 
     draw.map()
 
+    draw.object(player)
+
 end
 draw.game = draw_game
 
@@ -136,6 +138,13 @@ end
 function draw.map()
 
     map(0, 0, 0, 0, 0, 0)
+
+end
+
+function draw.object(object)
+
+    sprite = object.sprite
+    spr(sprite.initial, object.coords.x, object.coords.y)
 
 end
 
