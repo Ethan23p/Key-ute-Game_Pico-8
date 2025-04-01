@@ -3,7 +3,7 @@ version 42
 __lua__
 --🔑ute Game (or :key:ute game)
 --idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
---for Cassie ♥
+--for Cassie ♥ fr
 --⬅️➡️⬆️⬇️
 --Technical note: In the comments I use commands like "region", "endregion", "tag" which shouldn't have any effect in-engine; they are due to my using the plug-in 'Outline Map' to organize my code.
 
