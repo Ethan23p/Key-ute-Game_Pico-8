@@ -5,6 +5,9 @@ __lua__
 --idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
 --for Cassie ♥
 --⬅️➡️⬆️⬇️
+--Technical note: In the comments I use commands like "region", "endregion", "tag" which shouldn't have any effect in-engine; they are due to my using the plug-in 'Outline Map' to organize my code.
+
+--[[ #region Initialization ]]
 
 utilities = {}
 
@@ -21,10 +24,14 @@ function _init()
 
 end
 
---Game flow
+--[[ #endregion Initialization ]]
+
+--[[ #region Game-Flow ]]
 
 --When the player's latest lifecycle is starting, set starting conditions.
 local function initialize_game()
+
+    player = init.create_player()
 
 end
 init.game = initialize_game
@@ -33,17 +40,23 @@ init.game = initialize_game
 function update_game()
 
 end
+update.game = update_game
 
 --Each cycle, draw the screen as the player will see it in progressive layers; earliest is bottom-most layers, latest is top-most.
 function draw_game()
 
-    clearScreen()
+    draw.clearScreen()
 
-    draw_map()
+    draw.map()
 
 end
+draw.game = draw_game
+
+--[[ #endregion Game-Flow ]]
 
 --Menu flow won't be implemented for a while. TODO
+--[[ #region Menu-Flow ]]
+
     function init_menu()
 
     end
@@ -55,41 +68,78 @@ end
     function draw_menu()
 
     end
---end
 
---Utility functions
+--[[ #endregion Menu-Flow ]]
 
---Initialize functions
+--[[ #region Utility-Functions ]]
+
+
+
+--[[ #endregion Utility-Functions ]]
+
+--[[ #region initialize-Functions ]]
 
 function init.config()
 
     config = {
 
-        skipIntoGame = true,
-        gameState = "menu"
+        skipIntoGame = true
 
     }
 
     if config.skipIntoGame then
         gameState = "game"
+    else
+        gameState = "menu"
     end
 
 end
 
-function create_player()
+--player = init.create-player()
+function init.create_player()
 
-    player = {
+    player_character = {
         coords = {
             x = 60,
             y = 60
+        },
+        velocity = {
+            x = 0,
+            y = 0
+        },
+        direction = "⬅️",
+        sprite = {
+            initial = 1
         }
     }
 
+    return player_character
+
 end
 
---Update functions
+--[[ #endregion initialize-Functions ]]
 
---Draw functions
+--[[ #region Update-Functions ]]
+
+
+
+--[[ #endregion Update-Functions ]]
+
+--[[ #region Draw-Functions ]]
+
+function draw.clearScreen()
+
+    cls()
+
+end
+
+function draw.map()
+
+    map(0, 0, 0, 0, 0, 0)
+
+end
+
+--[[ #endregion Draw-Functions ]]
 
 
 
