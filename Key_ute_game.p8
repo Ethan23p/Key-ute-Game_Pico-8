@@ -9,7 +9,7 @@ __lua__
 
 --[[ #region Initialization ]]
 
-utilities = {}
+util = {}
 
 init = {}
 update = {}
@@ -42,6 +42,7 @@ init.game = initialize_game
 --Each cycle, check game conditions and execute ongoing logic.
 local function update_game()
 
+    table_playerIntent = update.input()
 
 
 end
@@ -80,11 +81,16 @@ end
 
 --[[ #region Utility-Functions ]]
 
-function return_foo()
+local function utility_troubleshooting(uniqueID, errorMessage)
 
-    return "foo"
+    if not queue_troubleshooting then
+        queue_troubleshooting = {}
+    end
+
+    add(queue_troubleshooting, errorMessage, uniqueID)
 
 end
+util.troubleshooting = utility_troubleshooting
 
 --[[ #endregion Utility-Functions ]]
 
@@ -106,7 +112,6 @@ function init.config()
 
 end
 
---player = init.create-player()
 function init.create_player()
 
     player_character = {
@@ -135,53 +140,54 @@ end
 --Returns player's intended impetus as a table of left, right, up, down
 --Values can be either true or nil, e.g. "if player.impetus.left then vel.x -= 8"
 --Thus, other code can use this straightforward representation.
-
 local function player_input()
 
-    impetus = {
-        x = nil,
-        y = nil
-    }
-    impetus = {
+    local impetus = {
         left = nil,
         right = nil,
         up = nil,
         down = nil
     }
-    input = {
+    local input = {
         x = 0,
         y = 0
     }
 
-    --if left, -1 to x velocity
-    --if right, +1 to x velocity
-    --if up, -1 to y velocity
-    --if down, +1 to y velocity
-
+    --Interpret input in a way that is flexible and robust to opposing buttons as well as both control schemes.
     if btn(0, 0) or btn(0, 1) then input.x -= 1 end
     if btn(1, 0) or btn(1, 1)  then input.x += 1 end
     if btn(2, 0) or btn(2, 1) then input.y -= 1 end
     if btn(3, 0) or btn(3, 1) then input.y += 1 end
 
-    if input.x == -1 then
-        impetus.x = "left"
+    --Formulate table in an easy to understand way so that
+    --Other code can use this straightforward representation.
+    if input.x == 0 then
+        impetus.left, impetus.right = nil
+    elseif input.x == -1 then
+        impetus.left = true
     elseif input.x == 1 then
-        impetus.x = "right"
+        impetus.right = true
     else
-        impetus.x = nil
+        impetus.left, impetus.right = nil
+        util.troubleshooting("input_x", "Invalid input.x: " .. input.x)
     end
 
-    if input.y == -1 then
-        impetus.y = "up"
+    if input.y == 0 then
+        impetus.up, impetus.down = nil
+    elseif input.y == -1 then
+        impetus.up = true
     elseif input.y == 1 then
-        impetus.y = "down"
+        impetus.down = true
     else
-        impetus.y = nil
+        impetus.up, impetus.down = nil
+        util.troubleshooting("input_y", "Invalid input.y: " .. input.y)
     end
+
+
 
     return impetus
-
 end
+update.input = player_input
 
 --[[ #endregion Update-Functions ]]
 
