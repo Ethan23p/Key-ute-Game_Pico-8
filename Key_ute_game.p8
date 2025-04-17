@@ -43,6 +43,7 @@ init.game = initialize_game
 local function update_game()
 
     table_playerIntent = update.input()
+    player.move()
 
 
 end
@@ -182,8 +183,6 @@ local function player_input()
         impetus.up, impetus.down = nil
         util.troubleshooting("input_y", "Invalid input.y: " .. input.y)
     end
-
-
 
     return impetus
 end
