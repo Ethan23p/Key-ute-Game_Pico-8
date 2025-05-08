@@ -3,7 +3,7 @@ version 42
 __lua__
 --🔑ute Game (or :key:ute game)
 --idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
---for Cassie ♥
+--for Cassie ♥ 
 --⬅️➡️⬆️⬇️
 --Technical note: In the comments I use commands like "region", "endregion", "tag" which shouldn't have any effect in-engine; they are due to my using the plug-in 'Outline Map' to organize my code.
 
@@ -43,7 +43,7 @@ init.game = initialize_game
 local function update_game()
 
     table_playerIntent = update.input()
-    player.move()
+    player.update()
 
 
 end
@@ -127,8 +127,15 @@ function init.create_player()
         direction = "⬅️",
         sprite = {
             initial = 1
-        }
+        },
+        update = function(self)
+            foo = "bar"
+        end
     }
+
+    local function update()
+
+    end
 
     return player_character
 
