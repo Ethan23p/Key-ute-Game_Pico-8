@@ -3,7 +3,7 @@ version 42
 __lua__
 --🔑ute Game (or :key:ute game)
 --idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
---for Cassie ♥ 
+--for Cassie ♥
 --⬅️➡️⬆️⬇️
 --Technical note: In the comments I use commands like "region", "endregion", "tag" which shouldn't have any effect in-engine; they are due to my using the plug-in 'Outline Map' to organize my code.
 
@@ -29,37 +29,33 @@ end
 --[[ #region Game-Flow ]]
 
 --When the player's latest lifecycle is starting, set starting conditions.
-local function initialize_game()
+function init.game()
 
     _update = update.game
     _draw = draw.game
 
-    player = init.create_player()
+    player = class_player:new()
 
 end
-init.game = initialize_game
 
 --Each cycle, check game conditions and execute ongoing logic.
-local function update_game()
+function update.game()
 
     table_playerIntent = update.input()
     player.update()
 
-
 end
-update.game = update_game
 
 --Each cycle, draw the screen as the player will see it in progressive layers; earliest is bottom-most layers, latest is top-most.
-local function draw_game()
+function draw.game()
 
     draw.clearScreen()
 
     draw.map()
 
-    draw.object(player)
+    player.draw()
 
 end
-draw.game = draw_game
 
 --[[ #endregion Game-Flow ]]
 
@@ -82,7 +78,7 @@ end
 
 --[[ #region Utility-Functions ]]
 
-local function utility_troubleshooting(uniqueID, errorMessage)
+function util.troubleshooting(uniqueID, errorMessage)
 
     if not queue_troubleshooting then
         queue_troubleshooting = {}
@@ -91,7 +87,6 @@ local function utility_troubleshooting(uniqueID, errorMessage)
     add(queue_troubleshooting, errorMessage, uniqueID)
 
 end
-util.troubleshooting = utility_troubleshooting
 
 --[[ #endregion Utility-Functions ]]
 
@@ -99,10 +94,11 @@ util.troubleshooting = utility_troubleshooting
 
 function init.config()
 
-    config = {
+    local config = {
 
-        skipIntoGame = true
-
+        skipIntoGame = true,
+        level_initial = 1,
+        init.levels()
     }
 
     if config.skipIntoGame then
@@ -113,31 +109,40 @@ function init.config()
 
 end
 
-function init.create_player()
+-- TODO I got carried away making this, I'll return to it.
+function init.levels()
 
-    player_character = {
-        coords = {
-            x = 60,
-            y = 60
-        },
-        velocity = {
-            x = 0,
-            y = 0
-        },
-        direction = "⬅️",
-        sprite = {
-            initial = 1
-        },
-        update = function(self)
-            foo = "bar"
-        end
+    levels = {}
+
+    level_title = {
+        "level_I",
+        "level_heart",
+        "level_u"
     }
+    coords_spawn = {
+        {x = 1, y = 2},
+        {},
+        {}
+    }
+    zone_success = {
+        {zone.x1 = 1, zone.y1 = 1, zone.x2 = 2, zone.y2 = 2},
+        {},
+        {}
+    }
+    coords_tileOrigin = {
+        {x = 1, y = 1},
+        {},
+        {}
+    }
+    coords_key =
+    table_hazards =
+    levelTimer =
 
-    local function update()
+    function levels.new(level_index)
+
+        level_title[level_index]
 
     end
-
-    return player_character
 
 end
 
@@ -148,7 +153,7 @@ end
 --Returns player's intended impetus as a table of left, right, up, down
 --Values can be either true or nil, e.g. "if player.impetus.left then vel.x -= 8"
 --Thus, other code can use this straightforward representation.
-local function player_input()
+function update.input()
 
     local impetus = {
         left = nil,
@@ -193,7 +198,20 @@ local function player_input()
 
     return impetus
 end
-update.input = player_input
+
+local class_player = {}
+class_player.__index = class_player
+
+function class_player:new()
+
+    local new_player = {}
+    setmetatable(new_player, class_player)
+
+
+
+    return new_player
+
+end
 
 --[[ #endregion Update-Functions ]]
 
