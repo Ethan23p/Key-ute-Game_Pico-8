@@ -4,6 +4,8 @@ __lua__
 -- Key-ute Game
 -- idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
 -- for Cassie ♥
+-- Context: This was the hacked together version that I got to her on Valentine's day;
+-- it's complete, the logic works, but it was well-before I became comfortable with Lua or knew any conventions.
 
 -->8
 --Flow Functions - init, update, draw

@@ -3,7 +3,8 @@ version 42
 __lua__
 --🔑ute Game (or :key:ute game)
 --idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
---Code is incomplete, many parts still missing
+--Code is incomplete, many parts still missing.
+--Going for a 'table of contents' style of organization
 --The concept is (spoiler alert) the player navigates (2d, birds eye view) through 3 levels while avoiding hazards and pressured by a timer;
 --when they complete the third level they're presented with a compressed view of all 3 maps;
 --then a 'ghost' recording of their character loops speedily through the actually path they took through the levels, leaving particles behind as it goes. Then a twist takes form - the maps were designed to make the player navigate such that it forms the message: 'I' '♥' 'U'. Concept by Nicky Case, it made for the perfect tiny project to learn the Pico-8.
@@ -18,72 +19,89 @@ draw = {}
 
 --
 function _init()
-
     --init config
     --init flow (game, menu, message)
     config = {
         player = {
+            initial_coords = { x = 64, y = 64 },
             speed = 8,
-            facing = "➡️"
+            initial_directionFacing = "➡️",
+            sprite_id = 1
+        },
+        map = {
+            tileSize = 8, -- Standard PICO-8 tile size
+            boundary_flag_id = 1 -- Sprite flag ID used for collision (0-7)
         }
     }
+    -- Initialize player direction from config
+    config.player.directionFacing = config.player.initial_directionFacing -- Let's eliminate this function with a more elegant solution; the config can be primarily initial values.
 
-    player = player_controller.new()
-
+    player = player_controller:new()
 end
 
 --
 function _update()
-
-    --game systems
-    --game conditions
-
     player:update()
-
 end
 
 --
 function _draw()
-
     draw.clear_screen()
     --draw map
     draw.background()
     player:draw()
     --draw overlay (timer, particles)
-
 end
+--- Utility Functions ---
 
--- Not implemented yet TODO
+-- Checks if the given screen coordinates (coords.x, coords.y)
+-- fall on a map tile that is considered a boundary.
+-- A boundary is defined as a tile with the predefined sprite flag set.
 function util.query_boundary(coords)
-    return false
+    -- Ensure necessary config values are available; otherwise, it's safer to assume a boundary
+    -- or handle the error as appropriate for your game's logic.
+    if not config or not config.map or not config.map.tileSize or not config.map.boundary_flag_id then
+        printh("Error: Missing map config in util.query_boundary. Assuming boundary.")
+        return true
+    end
+
+    local tile_size = config.map.tileSize
+    local map_x = flr(coords.x / tile_size)
+    local map_y = flr(coords.y / tile_size)
+
+    local sprite_id = mget(map_x, map_y)
+    local sprite_flags = fget(sprite_id)
+
+    -- Calculate the bitmask for the configured boundary flag
+    local boundary_flag_bitmask = 2^config.map.boundary_flag_id
+    return band(sprite_flags, boundary_flag_bitmask) > 0
 end
 
-player_controller = {
-    speed = config.player.speed,
-    facing = config.player.facing
-}
+--- Player Controller ---
+
+player_controller = {}
 player_controller.__index = player_controller
 
 function player_controller:new()
-
     local instance = {
         coords = {
-            x = 32,
-            y = 32
+            x = config.player.initial_coords.x,
+            y = config.player.initial_coords.y
         },
         vel = {
             x = 0,
             y = 0
-        }
+        },
+        speed = config.player.speed,
+        directionFacing = config.player.initial_directionFacing
+
     }
 
     setmetatable(instance, self)
     return instance
-
 end
 
 function player_controller:update()
-
     local playerImpetus = self:getInput()
 
     local coords_intended = self:query_intendedCoords(playerImpetus)
@@ -91,13 +109,10 @@ function player_controller:update()
     if not util.query_boundary(coords_intended) then
         self.coords = coords_intended
     end
-
 end
 
 function player_controller:draw()
-
-    spr(1, self.coords.x, self.coords.y)
-
+    spr(config.player.sprite_id, self.coords.x, self.coords.y)
 end
 
 function player_controller:query_intendedCoords(impetus)
@@ -124,12 +139,10 @@ function player_controller:query_intendedCoords(impetus)
     return intended_coords
 end
 
-
 --Returns player's intended impetus as a table of left, right, up, down
 --Values can be either true or nil, e.g. "if player.impetus.left then vel.x -= 8"
 --Thus, other code can use this straightforward representation.
 function player_controller:getInput()
-
     local impetus = {
         left = nil,
         right = nil,
@@ -143,7 +156,7 @@ function player_controller:getInput()
 
     --Interpret input in a way that is flexible and robust to opposing buttons as well as both control schemes.
     if btn(0, 0) or btn(0, 1) then input.x -= 1 end
-    if btn(1, 0) or btn(1, 1)  then input.x += 1 end
+    if btn(1, 0) or btn(1, 1) then input.x += 1 end
     if btn(2, 0) or btn(2, 1) then input.y -= 1 end
     if btn(3, 0) or btn(3, 1) then input.y += 1 end
 
@@ -174,23 +187,20 @@ function player_controller:getInput()
     return impetus
 end
 
+--- Draw Functions ---
 
 function draw.clear_screen()
-
     cls()
-
 end
 
 function draw.background()
-
     circfill(60, 60, 20, 1)
-
 end
 
+--
+--
+--
 
---
---
---
 __gfx__
 00000000002888000028880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000002888000028880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
