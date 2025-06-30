@@ -4,10 +4,13 @@ __lua__
 --🔑ute Game (or :key:ute game)
 --idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
 --Code is incomplete, many parts still missing.
---Going for a 'table of contents' style of organization
 --The concept is (spoiler alert) the player navigates (2d, birds eye view) through 3 levels while avoiding hazards and pressured by a timer;
 --when they complete the third level they're presented with a compressed view of all 3 maps;
 --then a 'ghost' recording of their character loops speedily through the actually path they took through the levels, leaving particles behind as it goes. Then a twist takes form - the maps were designed to make the player navigate such that it forms the message: 'I' '♥' 'U'. Concept by Nicky Case, it made for the perfect tiny project to learn the Pico-8.
+--Principles I'm grappling with:
+--Tell, don't ask
+--encapsulation
+--Going for a 'table of contents' style of organization
 --for Cassie ♥
 --⬅️➡️⬆️⬇️
 
@@ -19,8 +22,36 @@ draw = {}
 
 --
 function _init()
-    --init config
-    --init flow (game, menu, message)
+    --init flow / flow (game, menu, message) TODO
+
+    init.config()
+
+    player = blueprint_player:new()
+    map = blueprint_map:new()
+end
+
+--
+function _update()
+    map:update()
+    player:update()
+    --update.conditions()
+end
+
+--
+function _draw()
+    draw.clear_screen()
+    map:draw()
+    --game_door:draw()
+    --game_key:draw()
+    player:draw()
+    --game_hazards:draw()
+    --game_overlay:draw()
+end
+
+--- Init Functions ---
+
+function init.config()
+    --The config definitions will stay here, easy to access.
     config = {
         player = {
             initial_coords = { x = 64, y = 64 },
@@ -32,57 +63,23 @@ function _init()
             tileSize = 8, -- Standard PICO-8 tile size
             boundary_flag_id = 1 -- Sprite flag ID used for collision (0-7)
         }
+        --[[
+        level parameters = 
+        level_title, seqOrder, coords_spawn,
+        zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer
+        ]]--
+
     }
-    -- Initialize player direction from config
-    config.player.directionFacing = config.player.initial_directionFacing -- Let's eliminate this function with a more elegant solution; the config can be primarily initial values.
-
-    player = player_controller:new()
 end
 
---
-function _update()
-    player:update()
-end
-
---
-function _draw()
-    draw.clear_screen()
-    --draw map
-    draw.background()
-    player:draw()
-    --draw overlay (timer, particles)
-end
 --- Utility Functions ---
 
--- Checks if the given screen coordinates (coords.x, coords.y)
--- fall on a map tile that is considered a boundary.
--- A boundary is defined as a tile with the predefined sprite flag set.
-function util.query_boundary(coords)
-    -- Ensure necessary config values are available; otherwise, it's safer to assume a boundary
-    -- or handle the error as appropriate for your game's logic.
-    if not config or not config.map or not config.map.tileSize or not config.map.boundary_flag_id then
-        printh("Error: Missing map config in util.query_boundary. Assuming boundary.")
-        return true
-    end
+--- Player Blueprint ---
 
-    local tile_size = config.map.tileSize
-    local map_x = flr(coords.x / tile_size)
-    local map_y = flr(coords.y / tile_size)
+blueprint_player = {}
+blueprint_player.__index = blueprint_player
 
-    local sprite_id = mget(map_x, map_y)
-    local sprite_flags = fget(sprite_id)
-
-    -- Calculate the bitmask for the configured boundary flag
-    local boundary_flag_bitmask = 2^config.map.boundary_flag_id
-    return band(sprite_flags, boundary_flag_bitmask) > 0
-end
-
---- Player Controller ---
-
-player_controller = {}
-player_controller.__index = player_controller
-
-function player_controller:new()
+function blueprint_player:new()
     local instance = {
         coords = {
             x = config.player.initial_coords.x,
@@ -101,48 +98,21 @@ function player_controller:new()
     return instance
 end
 
-function player_controller:update()
+function blueprint_player:update()
+
     local playerImpetus = self:getInput()
 
-    local coords_intended = self:query_intendedCoords(playerImpetus)
-
-    if not util.query_boundary(coords_intended) then
-        self.coords = coords_intended
-    end
 end
 
-function player_controller:draw()
+function blueprint_player:draw()
     spr(config.player.sprite_id, self.coords.x, self.coords.y)
 end
 
-function player_controller:query_intendedCoords(impetus)
-    local intended_coords = {
-        x = self.coords.x,
-        y = self.coords.y
-    }
-    local current_speed = self.speed
-
-    if impetus.left then
-        intended_coords.x -= current_speed
-        self.directionFacing = "⬅️"
-    elseif impetus.right then
-        intended_coords.x += current_speed
-        self.directionFacing = "➡️"
-    end
-
-    if impetus.up then
-        intended_coords.y -= current_speed
-    elseif impetus.down then
-        intended_coords.y += current_speed
-    end
-
-    return intended_coords
-end
 
 --Returns player's intended impetus as a table of left, right, up, down
 --Values can be either true or nil, e.g. "if player.impetus.left then vel.x -= 8"
 --Thus, other code can use this straightforward representation.
-function player_controller:getInput()
+function blueprint_player:getInput()
     local impetus = {
         left = nil,
         right = nil,
@@ -187,14 +157,46 @@ function player_controller:getInput()
     return impetus
 end
 
+--- Map Functions ---
+
+-- Map object blueprint
+blueprint_map = {}
+blueprint_map.__index = blueprint_map
+
+function blueprint_map:new()
+    local instance = {
+        -- Map rendering properties
+        tile_size = config.map.tileSize,
+        screen_x = 0,
+        screen_y = 0,
+        -- Map data properties
+        width = 16,  -- tiles
+        height = 16, -- tiles
+    }
+    
+    setmetatable(instance, self)
+    return instance
+end
+
+function blueprint_map:update()
+
+end
+
+function blueprint_map:draw()
+    -- Draw the map section
+    map(
+        self.tile_origin.x, 
+        self.tile_origin.y, 
+        self.screen_x,
+        self.screen_y,
+        self.width, 
+        self.height
+    )
+end
 --- Draw Functions ---
 
 function draw.clear_screen()
     cls()
-end
-
-function draw.background()
-    circfill(60, 60, 20, 1)
 end
 
 --
