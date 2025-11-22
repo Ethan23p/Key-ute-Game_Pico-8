@@ -1,18 +1,11 @@
 pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
---🔑ute Game (or :key:ute game)
---idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
---Code is incomplete, many parts still missing.
---The concept is (spoiler alert) the player navigates (2d, birds eye view) through 3 levels while avoiding hazards and pressured by a timer;
---when they complete the third level they're presented with a compressed view of all 3 maps;
---then a 'ghost' recording of their character loops speedily through the actually path they took through the levels, leaving particles behind as it goes. Then a twist takes form - the maps were designed to make the player navigate such that it forms the message: 'I' '♥' 'U'. Concept by Nicky Case, it made for the perfect tiny project to learn the Pico-8.
---Principles I'm grappling with:
---Tell, don't ask
---encapsulation
---Going for a 'table of contents' style of organization
---for Cassie ♥
---⬅️➡️⬆️⬇️
+-- 🔑ute Game (or :key:ute game)
+-- idea 100% taken from Nicky Case, code 100% written by me, Ethan Porter
+-- Code is incomplete, many parts still missing.
+-- for Cassie ♥
+-- ⬅️➡️⬆️⬇️
 
 util = {}
 
@@ -20,27 +13,47 @@ init = {}
 update = {}
 draw = {}
 
---
+-- When a run starts
 function _init()
     --init flow / flow (game, menu, message) TODO
 
     init.config()
 
-    player = blueprint_player:new()
-    map = blueprint_map:new()
+    --init.levels()
+
+        -- Sets/validates parameters according to current level.
+        -- init.run()
+            -- if level == message then do message stuff
+
+    player = proto_player:new()
+    env = proto_env:new()
+
 end
 
---
+-- Process logic every frame
 function _update()
-    map:update()
-    player:update()
-    --update.conditions()
+
+        -- Establish player's new intent. Tell env intent.
+        player:update()
+
+    -- Place/validate environment hazards, starting position, success zone. Assess player's intent & tell result.
+    env:update()
+
+    -- Does player obj care about movement? Or does it just communicate and get told what to do?
+    -- I suppose player object just does communications.
+    -- I keep getting tripped up by this: which system manages position in world? Because an entity can intend to do whatever it wants, but it only moves according to the rules of the environment.
+    player.receiveMovement()
+
+    -- Check for success, death, validate movement.
+    -- update.conditions()
+
 end
 
---
+-- Render every frame
 function _draw()
+
     draw.clear_screen()
-    map:draw()
+    env:draw()
     --game_door:draw()
     --game_key:draw()
     player:draw()
@@ -51,7 +64,6 @@ end
 --- Init Functions ---
 
 function init.config()
-    --The config definitions will stay here, easy to access.
     config = {
         player = {
             initial_coords = { x = 64, y = 64 },
@@ -59,12 +71,12 @@ function init.config()
             initial_directionFacing = "➡️",
             sprite_id = 1
         },
-        map = {
+        env = {
             tileSize = 8, -- Standard PICO-8 tile size
             boundary_flag_id = 1 -- Sprite flag ID used for collision (0-7)
         }
         --[[
-        level parameters = 
+        level parameters =
         level_title, seqOrder, coords_spawn,
         zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer
         ]]--
@@ -74,12 +86,12 @@ end
 
 --- Utility Functions ---
 
---- Player Blueprint ---
+--- Player proto ---
 
-blueprint_player = {}
-blueprint_player.__index = blueprint_player
+proto_player = {}
+proto_player.__index = proto_player
 
-function blueprint_player:new()
+function proto_player:new()
     local instance = {
         coords = {
             x = config.player.initial_coords.x,
@@ -98,13 +110,15 @@ function blueprint_player:new()
     return instance
 end
 
-function blueprint_player:update()
+function proto_player:update()
 
     local playerImpetus = self:getInput()
 
+    -- env.checkMovement(playerImpetus)
+
 end
 
-function blueprint_player:draw()
+function proto_player:draw()
     spr(config.player.sprite_id, self.coords.x, self.coords.y)
 end
 
@@ -112,7 +126,7 @@ end
 --Returns player's intended impetus as a table of left, right, up, down
 --Values can be either true or nil, e.g. "if player.impetus.left then vel.x -= 8"
 --Thus, other code can use this straightforward representation.
-function blueprint_player:getInput()
+function proto_player:getInput()
     local impetus = {
         left = nil,
         right = nil,
@@ -157,42 +171,88 @@ function blueprint_player:getInput()
     return impetus
 end
 
---- Map Functions ---
+function proto_player.receiveMovement()
 
--- Map object blueprint
-blueprint_map = {}
-blueprint_map.__index = blueprint_map
+    -- if success then [change player coords]
 
-function blueprint_map:new()
+    -- else [less]
+
+end
+
+--- env Functions ---
+
+-- env object proto
+proto_env = {}
+proto_env.__index = proto_env
+
+function proto_env:new()
     local instance = {
-        -- Map rendering properties
-        tile_size = config.map.tileSize,
+        -- env rendering properties
+        tile_size = config.env.tileSize,
         screen_x = 0,
         screen_y = 0,
-        -- Map data properties
-        width = 16,  -- tiles
-        height = 16, -- tiles
     }
-    
+
     setmetatable(instance, self)
     return instance
 end
 
-function blueprint_map:update()
+function proto_env:update()
+
+
 
 end
 
-function blueprint_map:draw()
-    -- Draw the map section
-    map(
-        self.tile_origin.x, 
-        self.tile_origin.y, 
+function proto_env:draw()
+    -- Draw the env section using level-specific tile origin or fallback
+    local tile_x = self.tile_origin.x or 0
+    local tile_y = self.tile_origin.y or 0
+
+    env(
+        tile_x,
+        tile_y,
         self.screen_x,
         self.screen_y,
-        self.width, 
+        self.width,
         self.height
     )
 end
+
+function proto_env.checkMovement(intent)
+
+    foo = (player.coords + (intent * player.speed))
+
+end
+
+--- Level Functions ---
+        --[[
+        level parameters =
+        level_title, coords_spawn,
+        zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer
+        ]]--
+
+proto_level = {}
+proto_level.__index = proto_level
+
+function proto_level:new(level_title, coords_spawn, zone_success, coords_tileOrigin, coords_key, table_hazards, levelTimer)
+    local instance = {
+        level_title = level_title,
+        coords_spawn = coords_spawn,
+        zone_success = zone_success,
+        coords_tileOrigin = coords_tileOrigin,
+        coords_key = coords_key,
+        table_hazards = table_hazards,
+        levelTimer = levelTimer
+    }
+
+    setmetatable(instance, self)
+    return instance
+end
+
+function proto_level:update()
+
+end
+
 --- Draw Functions ---
 
 function draw.clear_screen()
